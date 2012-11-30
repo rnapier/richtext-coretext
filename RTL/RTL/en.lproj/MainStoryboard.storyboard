@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="2.0" toolsVersion="2844" systemVersion="12C60" targetRuntime="iOS.CocoaTouch.iPad" propertyAccessControl="none" useAutolayout="YES" initialViewController="2">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="1930"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="4">
+            <objects>
+                <viewController id="2" customClass="ViewController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="5">
+                        <rect key="frame" x="0.0" y="20" width="768" height="1004"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" usesAttributedText="YES" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="08v-zc-5RZ">
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="353" id="9kD-Gc-drB"/>
+                                </constraints>
+                                <attributedString key="attributedText">
+                                    <fragment content="Label">
+                                        <attributes>
+                                            <color key="NSColor" cocoaTouchSystemColor="darkTextColor"/>
+                                            <font key="NSFont" size="17" name="Helvetica"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="natural"/>
+                                        </attributes>
+                                    </fragment>
+                                </attributedString>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" usesAttributedText="YES" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="PHk-Bx-OY3">
+                                <attributedString key="attributedText">
+                                    <fragment content="Label">
+                                        <attributes>
+                                            <color key="NSColor" cocoaTouchSystemColor="darkTextColor"/>
+                                            <font key="NSFont" size="17" name="Helvetica"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="natural"/>
+                                        </attributes>
+                                    </fragment>
+                                </attributedString>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" usesAttributedText="YES" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Wh7-0l-fVg">
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="354" id="Um7-mj-5Vg"/>
+                                </constraints>
+                                <attributedString key="attributedText">
+                                    <fragment content="Label">
+                                        <attributes>
+                                            <color key="NSColor" cocoaTouchSystemColor="darkTextColor"/>
+                                            <font key="NSFont" size="17" name="Helvetica"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="natural"/>
+                                        </attributes>
+                                    </fragment>
+                                </attributedString>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" usesAttributedText="YES" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="NMT-on-Epi">
+                                <attributedString key="attributedText">
+                                    <fragment content="Label">
+                                        <attributes>
+                                            <color key="NSColor" cocoaTouchSystemColor="darkTextColor"/>
+                                            <font key="NSFont" size="17" name="Helvetica"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="natural"/>
+                                        </attributes>
+                                    </fragment>
+                                </attributedString>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="NMT-on-Epi" firstAttribute="baseline" secondItem="PHk-Bx-OY3" secondAttribute="baseline" type="default" id="2aV-c0-iiH"/>
+                            <constraint firstItem="PHk-Bx-OY3" firstAttribute="leading" secondItem="5" secondAttribute="leading" constant="20" symbolic="YES" type="default" id="9tW-BB-Pu8"/>
+                            <constraint firstItem="Wh7-0l-fVg" firstAttribute="baseline" secondItem="08v-zc-5RZ" secondAttribute="baseline" type="default" id="Kmp-zQ-s5T"/>
+                            <constraint firstItem="PHk-Bx-OY3" firstAttribute="top" secondItem="5" secondAttribute="top" constant="190" id="Ojs-OT-iDc"/>
+                            <constraint firstAttribute="trailing" secondItem="Wh7-0l-fVg" secondAttribute="trailing" constant="20" symbolic="YES" type="default" id="T8a-jR-hiA"/>
+                            <constraint firstItem="NMT-on-Epi" firstAttribute="leading" secondItem="Wh7-0l-fVg" secondAttribute="leading" type="default" id="ZyN-9U-VLW"/>
+                            <constraint firstItem="08v-zc-5RZ" firstAttribute="top" secondItem="5" secondAttribute="top" constant="97" id="asv-hG-b1m"/>
+                            <constraint firstItem="08v-zc-5RZ" firstAttribute="leading" secondItem="5" secondAttribute="leading" constant="20" symbolic="YES" type="default" id="cwf-A8-IaD"/>
+                            <constraint firstAttribute="trailing" secondItem="NMT-on-Epi" secondAttribute="trailing" constant="20" symbolic="YES" type="default" id="ghP-Gm-CWB"/>
+                            <constraint firstItem="PHk-Bx-OY3" firstAttribute="trailing" secondItem="08v-zc-5RZ" secondAttribute="trailing" type="default" id="rru-3P-nQU"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="label1a" destination="Wh7-0l-fVg" id="qa8-Bh-LME"/>
+                        <outlet property="label1e" destination="08v-zc-5RZ" id="nlR-Ja-1B8"/>
+                        <outlet property="label2a" destination="NMT-on-Epi" id="MMo-ai-Yjb"/>
+                        <outlet property="label2e" destination="PHk-Bx-OY3" id="pmj-mg-91L"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="3" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+    <classes>
+        <class className="NSLayoutConstraint" superclassName="NSObject">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/NSLayoutConstraint.h"/>
+        </class>
+        <class className="ViewController" superclassName="UIViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/ViewController.h"/>
+            <relationships>
+                <relationship kind="outlet" name="label1a" candidateClass="UILabel"/>
+                <relationship kind="outlet" name="label1e" candidateClass="UILabel"/>
+                <relationship kind="outlet" name="label2a" candidateClass="UILabel"/>
+                <relationship kind="outlet" name="label2e" candidateClass="UILabel"/>
+            </relationships>
+        </class>
+    </classes>
+    <simulatedMetricsContainer key="defaultSimulatedMetrics">
+        <simulatedStatusBarMetrics key="statusBar" statusBarStyle="blackTranslucent"/>
+        <simulatedOrientationMetrics key="orientation"/>
+        <simulatedScreenMetrics key="destination"/>
+    </simulatedMetricsContainer>
+</document>
