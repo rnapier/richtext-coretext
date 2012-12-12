@@ -41,6 +41,7 @@ static const CFRange kRangeZero = {0,0};
   CGAffineTransformTranslate(transform, 0, -self.bounds.size.height);
   self.transform = transform;
 #endif
+//  self.contentScaleFactor = 1.0;  // If you want it to be near-realtime. :D
 }
 
 - (void)dealloc {
@@ -56,7 +57,7 @@ void UpdatePositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin, N
   }
 
   // Tuning variables
-  CGFloat scale = 500;
+  CGFloat scale = 1000;
   CGFloat highClip = 20;
   CGFloat lowClip = -highClip;
 
@@ -130,7 +131,6 @@ void UpdatePositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin, N
   // Start in the upper-left corner
   CGPoint textOrigin = CGPointMake(CGRectGetMinX(insetBounds),
                                    CGRectGetMaxY(insetBounds));
-
 
   CFIndex start = 0;
   NSUInteger length = CFAttributedStringGetLength(attributedString);
@@ -221,7 +221,6 @@ void UpdatePositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin, N
   for (UITouch *touch in touches) {
     CGPoint location = [touch locationInView:self];
     [points addObject:[NSValue valueWithCGPoint:location]];
-    
   }
 
   self.touchPoints = points;
