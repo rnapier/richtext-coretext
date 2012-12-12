@@ -14,7 +14,7 @@ static const CFRange kRangeZero = {0,0};
 @interface PinchTextView ()
 
 @property (nonatomic, readonly) CTTypesetterRef typesetter;
-@property (nonatomic, readwrite, assign) CGPoint touchPoint;
+@property (nonatomic, readwrite, strong) NSSet *touchPoints;
 - (void)finishInit;
 @end
 
@@ -46,21 +46,44 @@ static const CFRange kRangeZero = {0,0};
   CFRelease(_typesetter), _typesetter = nil;
 }
 
-CGPoint GetPinchedPointForPoint(CGPoint point, CGPoint textOrigin, CGPoint touchPoint) {
+CGPoint GetPinchedPointForPoint(CGRect bounds, CGPoint point, CGPoint textOrigin, CGPoint touchPoint) {
   // Text space -> view space
   CGPoint pinchedPoint = point;
   pinchedPoint.x += textOrigin.x;
   pinchedPoint.y += textOrigin.y;
   
-  CGFloat r = sqrtf(hypotf(pinchedPoint.x - touchPoint.x,
-                           pinchedPoint.y - touchPoint.y)) / 4;
-  CGFloat theta = atan2f(pinchedPoint.y - touchPoint.y,
+  CGFloat r_touch = sqrtf(hypotf(pinchedPoint.x - touchPoint.x,
+                           pinchedPoint.y - touchPoint.y));
+  CGFloat theta_touch = atan2f(pinchedPoint.y - touchPoint.y,
                          pinchedPoint.x - touchPoint.x);
-  CGFloat g = 10;
+    
+  CGFloat d_minX = pinchedPoint.x;
+  CGFloat d_maxX = CGRectGetMaxX(bounds) - pinchedPoint.x;
+  CGFloat d_minY = pinchedPoint.y;
+  CGFloat d_maxY = CGRectGetMaxY(bounds) - pinchedPoint.y;
   
-  pinchedPoint.x -= floorf(cosf(theta) * r * g);
-  pinchedPoint.y -= floor(sinf(theta) * r * g);
+  CGPoint closestEdge;
+  if (d_minX <= d_maxX && d_minX <= d_minY && d_minX <= d_maxY) {
+    closestEdge = CGPointMake(CGRectGetMinX(bounds), pinchedPoint.y);
+  }
+  else if (d_maxX <= d_minY && d_maxX <= d_maxY) {
+    closestEdge = CGPointMake(CGRectGetMaxX(bounds), pinchedPoint.y);
+  }
+  else if (d_minY <= d_maxY) {
+    closestEdge = CGPointMake(pinchedPoint.x, CGRectGetMinY(bounds));
+  }
+  else {
+    closestEdge = CGPointMake(pinchedPoint.x, CGRectGetMaxY(bounds));
+  }
   
+  CGFloat r_edge = sqrtf(hypotf(pinchedPoint.x - closestEdge.x,
+                                pinchedPoint.y - closestEdge.y));
+  
+  CGFloat scale = 0.5;
+  CGFloat multiplier = (1.f/r_touch) * scale * r_edge * r_edge;
+  pinchedPoint.x -= cosf(theta_touch) * multiplier;
+  pinchedPoint.y -= sinf(theta_touch) * multiplier;
+
   // view space -> text space
   pinchedPoint.x -= textOrigin.x;
   pinchedPoint.y -= textOrigin.y;
@@ -85,8 +108,8 @@ CGPoint GetPinchedPointForPoint(CGPoint point, CGPoint textOrigin, CGPoint touch
   CGContextSetTextMatrix(context, CGAffineTransformIdentity);
   
   // Cache any calls we can avoid in the loop
-  CGPoint touchPoint = self.touchPoint;
-  BOOL touchIsActive = ! CGPointEqualToPoint(touchPoint, CGPointZero);
+  NSSet *touchPoints = self.touchPoints;
+  BOOL touchIsActive = (touchPoints != nil);
   
   // Work out the geometry
   CGRect insetBounds = CGRectInset([self bounds], 40.0, 40.0);
@@ -96,8 +119,9 @@ CGPoint GetPinchedPointForPoint(CGPoint point, CGPoint textOrigin, CGPoint touch
   CGContextStrokeRect(context, insetBounds);
   
   // Start in the upper-left corner
-  CGPoint textOrigin = CGPointMake(floor(CGRectGetMinX(insetBounds)),
-                                     floor(CGRectGetMaxY(insetBounds)));
+  CGPoint textOrigin = CGPointMake(CGRectGetMinX(insetBounds),
+                                   CGRectGetMaxY(insetBounds));
+
 
   CFIndex start = 0;
   NSUInteger length = CFAttributedStringGetLength(attributedString);
@@ -121,7 +145,7 @@ CGPoint GetPinchedPointForPoint(CGPoint point, CGPoint textOrigin, CGPoint touch
     }
     
     // Move forward to the baseline
-    textOrigin.y -= ceil(ascent);
+      textOrigin.y -= ascent;
     CGContextSetTextPosition(context, textOrigin.x, textOrigin.y);
     
     // Get the CTRun list
@@ -169,9 +193,15 @@ CGPoint GetPinchedPointForPoint(CGPoint point, CGPoint textOrigin, CGPoint touch
       // Squeeze the text towards the touch-point
       if (touchIsActive) {
         for (CFIndex glyphIndex = 0; glyphIndex < glyphCount; ++glyphIndex) {
-          positions[glyphIndex] = GetPinchedPointForPoint(positions[glyphIndex],
-                                                          textOrigin,
-                                                          touchPoint);
+          CGPoint finalPoint = positions[glyphIndex];
+          for (NSValue *pointValue in touchPoints) {
+            finalPoint = GetPinchedPointForPoint(insetBounds,
+                                                 finalPoint,
+                                                 textOrigin,
+                                                 [pointValue CGPointValue]);
+          }
+          
+          positions[glyphIndex] = finalPoint;
         }
       }
       
@@ -180,32 +210,37 @@ CGPoint GetPinchedPointForPoint(CGPoint point, CGPoint textOrigin, CGPoint touch
     
     // Move the index beyond the line break.
     start += count;
-    textOrigin.y -= ceilf(descent + leading + 1); // +1 matches best to CTFramesetter's behavior
+    textOrigin.y -= descent + leading + 1; // +1 matches best to CTFramesetter's behavior
     CFRelease(line);
   }
   free(positionsBuffer);
   free(glyphsBuffer);
 }
 
-- (void)updateTouchPointWithTouch:(UITouch *)touch
+- (void)updateTouchPointWithTouches:(NSSet *)touches
 {
-  self.touchPoint = [touch locationInView:self];
+  NSMutableSet *points = [NSMutableSet new];
+  [touches enumerateObjectsUsingBlock:^(UITouch *touch, BOOL *stop) {
+    [points addObject:[NSValue valueWithCGPoint:[touch locationInView:self]]];
+  }];
+  
+  self.touchPoints = points;
   [self setNeedsDisplay];
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-  [self updateTouchPointWithTouch:[touches anyObject]];
+  [self updateTouchPointWithTouches:[event allTouches]];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-  [self updateTouchPointWithTouch:[touches anyObject]];
+  [self updateTouchPointWithTouches:[event allTouches]];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-  self.touchPoint = CGPointZero;
+  self.touchPoints = nil;
   [self setNeedsDisplay];
 }
 
