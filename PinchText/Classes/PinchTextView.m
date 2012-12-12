@@ -8,6 +8,7 @@
 
 #import "PinchTextView.h"
 #import <malloc/malloc.h>
+#import <Accelerate/Accelerate.h>
 
 static const CFRange kRangeZero = {0,0};
 
@@ -90,6 +91,50 @@ CGPoint GetPinchedPointForPoint(CGRect bounds, CGPoint point, CGPoint textOrigin
   
   return pinchedPoint;
 }
+
+void UpdatePositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin, NSSet *touchPoints, CGRect bounds) {
+  // FIXME: Add multi-touch
+  CGPoint touchPoint = [[touchPoints anyObject] CGPointValue];
+  
+  float *xStart = (float *)positions;
+  float *yStart = xStart + 1;
+  
+  // Text space -> view space
+  vDSP_vsadd(xStart, 2, &(textOrigin.x), xStart, 2, count);
+  vDSP_vsadd(yStart, 2, &(textOrigin.y), yStart, 2, count);
+  
+  CGFloat *adjust = malloc(sizeof(CGPoint) * count);
+  memcpy(adjust, positions, sizeof(CGPoint) * count);
+  float negTouchPointX = -touchPoint.x;
+  float negTouchPointY = -touchPoint.y;
+  vDSP_vsadd(adjust, 2, &negTouchPointX, adjust, 2, count);
+  vDSP_vsadd(adjust + 1, 2, &negTouchPointY, adjust + 1, 2, count);
+  vDSP_polar(adjust, 2, adjust, 2, count);
+  
+  CGFloat scale = 500;
+  CGFloat highClip = 20;
+  CGFloat lowClip = -highClip;
+  vDSP_svdiv(&scale, adjust, 2, adjust, 2, count);
+  
+  vDSP_vclip(adjust, 2, &lowClip, &highClip, adjust, 2, count);
+  
+  vDSP_rect(adjust, 2, adjust, 2, count);
+  
+  vDSP_vsub(adjust, 1, (float*)positions, 1, (float*)positions, 1, count * 2);
+  
+  // view space -> text space
+  textOrigin.x = -textOrigin.x;
+  textOrigin.y = -textOrigin.y;
+  vDSP_vsadd(xStart, 2, &(textOrigin.x), xStart, 2, count);
+  vDSP_vsadd(yStart, 2, &(textOrigin.y), yStart, 2, count);
+  
+//  for (NSUInteger i = 0; i < count; i++) {
+//    printf("%d:%s:%s\n", i, NSStringFromCGPoint(((CGPoint*)adjust)[i]).UTF8String, NSStringFromCGPoint(positions[i]).UTF8String);
+//  }
+  
+  free(adjust);
+}
+
 
 - (void)drawRect:(CGRect)rect {
   
@@ -192,17 +237,19 @@ CGPoint GetPinchedPointForPoint(CGRect bounds, CGPoint point, CGPoint textOrigin
       
       // Squeeze the text towards the touch-point
       if (touchIsActive) {
-        for (CFIndex glyphIndex = 0; glyphIndex < glyphCount; ++glyphIndex) {
-          CGPoint finalPoint = positions[glyphIndex];
-          for (NSValue *pointValue in touchPoints) {
-            finalPoint = GetPinchedPointForPoint(insetBounds,
-                                                 finalPoint,
-                                                 textOrigin,
-                                                 [pointValue CGPointValue]);
-          }
-          
-          positions[glyphIndex] = finalPoint;
-        }
+        UpdatePositions(positions, glyphCount, textOrigin, touchPoints, insetBounds);
+//        
+//        for (CFIndex glyphIndex = 0; glyphIndex < glyphCount; ++glyphIndex) {
+//          CGPoint finalPoint = positions[glyphIndex];
+//          for (NSValue *pointValue in touchPoints) {
+//            finalPoint = GetPinchedPointForPoint(insetBounds,
+//                                                 finalPoint,
+//                                                 textOrigin,
+//                                                 [pointValue CGPointValue]);
+//          }
+//          
+//          positions[glyphIndex] = finalPoint;
+//        }
       }
       
       CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);

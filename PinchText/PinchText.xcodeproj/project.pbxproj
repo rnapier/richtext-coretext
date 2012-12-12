@@ -16,6 +16,7 @@
 		FB3C95C81236A6EB00297B53 /* PinchTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = FB3C95C71236A6EB00297B53 /* PinchTextView.m */; };
 		FB3C95ED1236AC3100297B53 /* CoreText.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB3C95EC1236AC3100297B53 /* CoreText.framework */; };
 		FB3C96301236AFA200297B53 /* Lipsum.txt in Resources */ = {isa = PBXBuildFile; fileRef = FB3C962F1236AFA200297B53 /* Lipsum.txt */; };
+		FBEA70D7167906F4000CEB83 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FBEA70D6167906F4000CEB83 /* Accelerate.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 		FB3C95C71236A6EB00297B53 /* PinchTextView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PinchTextView.m; sourceTree = "<group>"; };
 		FB3C95EC1236AC3100297B53 /* CoreText.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreText.framework; path = System/Library/Frameworks/CoreText.framework; sourceTree = SDKROOT; };
 		FB3C962F1236AFA200297B53 /* Lipsum.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Lipsum.txt; sourceTree = "<group>"; };
+		FBEA70D6167906F4000CEB83 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -40,6 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FBEA70D7167906F4000CEB83 /* Accelerate.framework in Frameworks */,
 				1D60589F0D05DD5A006BFB54 /* Foundation.framework in Frameworks */,
 				1DF5F4E00D08C38300B7A737 /* UIKit.framework in Frameworks */,
 				288765FD0DF74451002DB57D /* CoreGraphics.framework in Frameworks */,
@@ -77,6 +80,7 @@
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
+				FBEA70D6167906F4000CEB83 /* Accelerate.framework */,
 				FB3C95EC1236AC3100297B53 /* CoreText.framework */,
 			);
 			name = CustomTemplate;
