@@ -47,85 +47,49 @@ static const CFRange kRangeZero = {0,0};
   CFRelease(_typesetter), _typesetter = nil;
 }
 
-CGPoint GetPinchedPointForPoint(CGRect bounds, CGPoint point, CGPoint textOrigin, CGPoint touchPoint) {
-  // Text space -> view space
-  CGPoint pinchedPoint = point;
-  pinchedPoint.x += textOrigin.x;
-  pinchedPoint.y += textOrigin.y;
-  
-  CGFloat r_touch = sqrtf(hypotf(pinchedPoint.x - touchPoint.x,
-                           pinchedPoint.y - touchPoint.y));
-  CGFloat theta_touch = atan2f(pinchedPoint.y - touchPoint.y,
-                         pinchedPoint.x - touchPoint.x);
-    
-  CGFloat d_minX = pinchedPoint.x;
-  CGFloat d_maxX = CGRectGetMaxX(bounds) - pinchedPoint.x;
-  CGFloat d_minY = pinchedPoint.y;
-  CGFloat d_maxY = CGRectGetMaxY(bounds) - pinchedPoint.y;
-  
-  CGPoint closestEdge;
-  if (d_minX <= d_maxX && d_minX <= d_minY && d_minX <= d_maxY) {
-    closestEdge = CGPointMake(CGRectGetMinX(bounds), pinchedPoint.y);
-  }
-  else if (d_maxX <= d_minY && d_maxX <= d_maxY) {
-    closestEdge = CGPointMake(CGRectGetMaxX(bounds), pinchedPoint.y);
-  }
-  else if (d_minY <= d_maxY) {
-    closestEdge = CGPointMake(pinchedPoint.x, CGRectGetMinY(bounds));
-  }
-  else {
-    closestEdge = CGPointMake(pinchedPoint.x, CGRectGetMaxY(bounds));
-  }
-  
-  CGFloat r_edge = sqrtf(hypotf(pinchedPoint.x - closestEdge.x,
-                                pinchedPoint.y - closestEdge.y));
-  
-  CGFloat scale = 0.5;
-  CGFloat multiplier = (1.f/r_touch) * scale * r_edge * r_edge;
-  pinchedPoint.x -= cosf(theta_touch) * multiplier;
-  pinchedPoint.y -= sinf(theta_touch) * multiplier;
-
-  // view space -> text space
-  pinchedPoint.x -= textOrigin.x;
-  pinchedPoint.y -= textOrigin.y;
-  
-  return pinchedPoint;
-}
-
 void UpdatePositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin, NSSet *touchPoints, CGRect bounds) {
+  // Static memory so we don't malloc/free constantly. Grow it to the largest size we ever need
   static CGFloat *adjust = NULL;
   size_t adjustSize = sizeof(CGPoint) * count;
   if (!adjust || malloc_size(adjust) < adjustSize) {
     adjust = realloc(adjust, adjustSize);
   }
-  
-  float *xStart = (float *)positions;
-  float *yStart = xStart + 1;
+
+  // Tuning variables
   CGFloat scale = 500;
   CGFloat highClip = 20;
   CGFloat lowClip = -highClip;
 
   // Text space -> view space
+  float *xStart = (float *)positions;
+  float *yStart = xStart + 1;
   vDSP_vsadd(xStart, 2, &(textOrigin.x), xStart, 2, count);
   vDSP_vsadd(yStart, 2, &(textOrigin.y), yStart, 2, count);
-  
+
+  // Apply all the touches
   for (NSValue *touchPointValue in touchPoints) {
-    memcpy(adjust, positions, sizeof(CGPoint) * count);
     CGPoint touchPoint = [touchPointValue CGPointValue];
 
+    // adjust = position - touchPoint
+    memcpy(adjust, positions, sizeof(CGPoint) * count);
     float negTouchPointX = -touchPoint.x;
     float negTouchPointY = -touchPoint.y;
     vDSP_vsadd(adjust, 2, &negTouchPointX, adjust, 2, count);
     vDSP_vsadd(adjust + 1, 2, &negTouchPointY, adjust + 1, 2, count);
-  
+
+    // Convert to polar coordinates (distance/angle)
     vDSP_polar(adjust, 2, adjust, 2, count);
     
+    // Scale distance
     vDSP_svdiv(&scale, adjust, 2, adjust, 2, count);
     
+    // Clip distances to range
     vDSP_vclip(adjust, 2, &lowClip, &highClip, adjust, 2, count);
     
+    // Convert back to rectangular cordinates (x,y)
     vDSP_rect(adjust, 2, adjust, 2, count);
   
+    // Apply adjustment
     vDSP_vsub(adjust, 1, (float*)positions, 1, (float*)positions, 1, count * 2);
   }
   
@@ -134,9 +98,7 @@ void UpdatePositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin, N
   textOrigin.y = -textOrigin.y;
   vDSP_vsadd(xStart, 2, &(textOrigin.x), xStart, 2, count);
   vDSP_vsadd(yStart, 2, &(textOrigin.y), yStart, 2, count);
-  
 }
-
 
 - (void)drawRect:(CGRect)rect {
   
@@ -254,25 +216,26 @@ void UpdatePositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin, N
   free(glyphsBuffer);
 }
 
-- (void)updateTouchPointWithTouches:(NSSet *)touches
-{
+- (void)updateTouchPointWithTouches:(NSSet *)touches {
   NSMutableSet *points = [NSMutableSet new];
-  [touches enumerateObjectsUsingBlock:^(UITouch *touch, BOOL *stop) {
-    [points addObject:[NSValue valueWithCGPoint:[touch locationInView:self]]];
-  }];
-  
+  for (UITouch *touch in touches) {
+    CGPoint location = [touch locationInView:self];
+    [points addObject:[NSValue valueWithCGPoint:location]];
+    
+  }
+
   self.touchPoints = points;
   [self setNeedsDisplay];
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-  [self updateTouchPointWithTouches:[event allTouches]];
+  [self updateTouchPointWithTouches:[event touchesForView:self]];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-  [self updateTouchPointWithTouches:[event allTouches]];
+  [self updateTouchPointWithTouches:[event touchesForView:self]];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
