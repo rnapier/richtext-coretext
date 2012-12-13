@@ -239,7 +239,7 @@ static const CFRange kRangeZero = {0,0};
       
       [self applyStylesFromRun:run toContext:context];
       
-      CFIndex glyphCount = CTRunGetGlyphCount(run);
+      size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
 
       CGPoint *positions = [self positionsForRun:run];
       
