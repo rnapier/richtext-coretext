@@ -16,7 +16,7 @@ static const CFRange kRangeZero = {0,0};
 
 @property (nonatomic, readonly) CTTypesetterRef typesetter;
 @property (nonatomic, readwrite, strong) NSSet *touchPoints;
-@property (nonatomic, readwrite, assign) CGPoint *adjustmentBuffer;
+@property (nonatomic, readwrite, assign) CGFloat *adjustmentBuffer;
 @end
 
 @implementation PinchTextView
@@ -66,14 +66,11 @@ static const CFRange kRangeZero = {0,0};
 }
 
 - (CGFloat *)adjustmentBufferForCount:(NSUInteger)count {
-  // Static memory so we don't malloc/free constantly. Grow it to the largest size we ever need
-  static CGFloat *adjust = NULL;
-  
   size_t adjustSize = sizeof(CGPoint) * count;
-  if (!adjust || malloc_size(adjust) < adjustSize) {
-    adjust = realloc(adjust, adjustSize);
+  if (!self.adjustmentBuffer|| malloc_size(self.adjustmentBuffer) < adjustSize) {
+    self.adjustmentBuffer = realloc(self.adjustmentBuffer, adjustSize);
   }
-  return adjust;
+  return self.adjustmentBuffer;
 }
 
 - (void)adjustViewPositions:(CGPoint *)positions
