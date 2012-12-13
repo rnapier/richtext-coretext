@@ -1,10 +1,7 @@
 //
 //  PinchTextView.m
-//  TextDemo
 //
-//  Created by Rob on 9/7/10.
-//  Copyright 2010 Rob Napier. All rights reserved.
-//
+//  Displays an attributed string and pinches it towards touches.
 
 #import "PinchTextView.h"
 #import <malloc/malloc.h>
@@ -20,6 +17,185 @@ static const CFRange kRangeZero = {0,0};
 @end
 
 @implementation PinchTextView
+
+#pragma mark -
+#pragma mark Drawing
+
+- (void)drawRect:(CGRect)rect {
+
+  if (self.attributedString == nil) {
+    return;
+  }
+
+  // Initialize the context (always initialize your text matrix)
+  CGContextRef context = UIGraphicsGetCurrentContext();
+  CGContextSetTextMatrix(context, CGAffineTransformIdentity);
+
+  // Cache any calls we can avoid in the loop
+  NSSet *touchPoints = self.touchPoints;
+  BOOL touchIsActive = (touchPoints != nil);
+
+  // Work out the geometry
+  CGRect insetBounds = CGRectInset([self bounds], 40.0, 40.0);
+  CGFloat boundsWidth = CGRectGetWidth(insetBounds);
+
+  // Start in the upper-left corner
+  CGPoint textOrigin = CGPointMake(CGRectGetMinX(insetBounds),
+                                   CGRectGetMaxY(insetBounds));
+
+  CFIndex startIndex = 0;
+  NSUInteger stringLength = self.attributedString.length;
+  while (startIndex < stringLength && textOrigin.y > insetBounds.origin.y) {
+    CGFloat ascent;
+    CGFloat descent;
+    CGFloat leading;
+    CTLineRef line = [self copyLineAtIndex:startIndex
+                                  forWidth:boundsWidth
+                                    ascent:&ascent
+                                   descent:&descent
+                                   leading:&leading];
+
+    // Move forward to the baseline
+    textOrigin.y -= ascent;
+    CGContextSetTextPosition(context, textOrigin.x, textOrigin.y);
+
+    // Handle each glyph run
+    for (id runID in (__bridge id)CTLineGetGlyphRuns(line)) {
+      CTRunRef run = (__bridge CTRunRef)runID;
+
+      [self applyStylesFromRun:run toContext:context];
+
+      size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
+
+      CGPoint *positions = [self positionsForRun:run];
+
+      if (touchIsActive) {
+        [self adjustTextPositions:positions
+                            count:glyphCount
+                           origin:textOrigin
+                      touchPoints:touchPoints];
+      }
+
+      const CGGlyph *glyphs = [self glyphsForRun:run];
+      CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
+    }
+
+    // Move the index beyond the line break.
+    startIndex += CTLineGetStringRange(line).length;
+    textOrigin.y -= descent + leading + 1; // +1 matches best to CTFramesetter's behavior
+    CFRelease(line);
+  }
+}
+
+#pragma mark -
+#pragma mark Typesetting
+
+- (CTLineRef)copyLineAtIndex:(CFIndex)startIndex
+                    forWidth:(CGFloat)boundsWidth
+                      ascent:(CGFloat *)ascent
+                     descent:(CGFloat *)descent
+                     leading:(CGFloat *)leading {
+  // Calculate the line
+  CFIndex lineCharacterCount = CTTypesetterSuggestLineBreak(self.typesetter, startIndex, boundsWidth);
+  CTLineRef line = CTTypesetterCreateLine(self.typesetter, CFRangeMake(startIndex, lineCharacterCount));
+
+  // Fetch the typographic bounds
+  double lineWidth = CTLineGetTypographicBounds(line, &(*ascent), &(*descent), &(*leading));
+
+  // Full-justify if the text isn't too short.
+  if ((lineWidth / boundsWidth) > 0.85) {
+    CTLineRef justifiedLine = CTLineCreateJustifiedLine(line, 1.0, boundsWidth);
+    CFRelease(line);
+    line = justifiedLine;
+  }
+  return line;
+}
+
+#pragma mark -
+#pragma mark Styles
+
+- (void)applyStylesFromRun:(CTRunRef)run
+               toContext:(CGContextRef)context {
+
+  // Set the font
+  CTFontRef runFont = CFDictionaryGetValue(CTRunGetAttributes(run),
+                                           kCTFontAttributeName);
+  CGFontRef cgFont = CTFontCopyGraphicsFont(runFont, NULL); // FIXME: We could optimize this by caching fonts we know we use.
+  CGContextSetFont(context, cgFont);
+  CGContextSetFontSize(context, CTFontGetSize(runFont));
+  CFRelease(cgFont);
+
+  // Any other style setting would go here
+}
+
+#pragma mark -
+#pragma mark Positioning
+
+- (void)adjustTextPositions:(CGPoint *)positions
+                      count:(NSUInteger)count
+                     origin:(CGPoint)textOrigin
+                touchPoints:(NSSet *)touchPoints {
+  // Text space -> View Space
+  [self addPoint:textOrigin toPositions:positions count:count];
+
+  // Apply all the touches
+  for (NSValue *touchPointValue in touchPoints) {
+    [self adjustViewPositions:positions
+                        count:count
+                forTouchPoint:[touchPointValue CGPointValue]];
+  }
+
+  // View Space -> Text Space
+  [self subtractPoint:textOrigin fromPositions:positions count:count];
+}
+
+- (void)addPoint:(CGPoint)point
+     toPositions:(CGPoint *)positions
+           count:(NSUInteger)count {
+  float *xStart = (float *)positions;
+  float *yStart = xStart + 1;
+  vDSP_vsadd(xStart, 2, &(point.x), xStart, 2, count);
+  vDSP_vsadd(yStart, 2, &(point.y), yStart, 2, count);
+}
+
+- (void)subtractPoint:(CGPoint)point
+        fromPositions:(CGPoint *)positions
+                count:(NSUInteger)count {
+  point.x = -point.x;
+  point.y = -point.y;
+  [self addPoint:point toPositions:positions count:count];
+}
+
+- (void)adjustViewPositions:(CGPoint *)positions
+                      count:(NSUInteger)count
+              forTouchPoint:(CGPoint)touchPoint {
+  CGFloat *adjustment = [self adjustmentBufferForCount:count];
+
+  // Tuning variables
+  CGFloat scale = 1000;
+  CGFloat highClip = 20;
+  CGFloat lowClip = -highClip;
+
+  // adjust = position - touchPoint
+  memcpy(adjustment, positions, sizeof(CGPoint) * count);
+  [self subtractPoint:touchPoint fromPositions:(CGPoint *)adjustment count:count];
+
+  // Convert to polar coordinates (distance/angle)
+  vDSP_polar(adjustment, 2, adjustment, 2, count);
+
+  // Scale distance
+  vDSP_svdiv(&scale, adjustment, 2, adjustment, 2, count);
+
+  // Clip distances to range
+  vDSP_vclip(adjustment, 2, &lowClip, &highClip, adjustment, 2, count);
+
+  // Convert back to rectangular cordinates (x,y)
+  vDSP_rect(adjustment, 2, adjustment, 2, count);
+
+  // Apply adjustment
+  vDSP_vsub(adjustment, 1, (float*)positions, 1, (float*)positions, 1, count * 2);
+}
+
 
 - (id)initWithFrame:(CGRect)frame {
   self = [super initWithFrame:frame];
@@ -48,91 +224,15 @@ static const CFRange kRangeZero = {0,0};
   CFRelease(_typesetter), _typesetter = nil;
 }
 
-- (void)addPoint:(CGPoint)point
-     toPositions:(CGPoint *)positions
-           count:(NSUInteger)count {
-  float *xStart = (float *)positions;
-  float *yStart = xStart + 1;
-  vDSP_vsadd(xStart, 2, &(point.x), xStart, 2, count);
-  vDSP_vsadd(yStart, 2, &(point.y), yStart, 2, count);
-}
-
-- (void)subtractPoint:(CGPoint)point
-        fromPositions:(CGPoint *)positions
-                count:(NSUInteger)count {
-  point.x = -point.x;
-  point.y = -point.y;
-  [self addPoint:point toPositions:positions count:count];
+void ResizeBufferToAtLeast(void **buffer, size_t size) {
+  if (! *buffer || malloc_size(*buffer) < size) {
+    *buffer = realloc(*buffer, size);
+  }
 }
 
 - (CGFloat *)adjustmentBufferForCount:(NSUInteger)count {
-  size_t adjustSize = sizeof(CGPoint) * count;
-  if (!self.adjustmentBuffer|| malloc_size(self.adjustmentBuffer) < adjustSize) {
-    self.adjustmentBuffer = realloc(self.adjustmentBuffer, adjustSize);
-  }
-  return self.adjustmentBuffer;
-}
-
-- (void)adjustViewPositions:(CGPoint *)positions
-                      count:(NSUInteger)count
-              forTouchPoint:(CGPoint)touchPoint {
-  CGFloat *adjustment = [self adjustmentBufferForCount:count];
-  
-  // Tuning variables
-  CGFloat scale = 1000;
-  CGFloat highClip = 20;
-  CGFloat lowClip = -highClip;
-  
-  // adjust = position - touchPoint
-  memcpy(adjustment, positions, sizeof(CGPoint) * count);
-  [self subtractPoint:touchPoint fromPositions:(CGPoint *)adjustment count:count];
-  
-  // Convert to polar coordinates (distance/angle)
-  vDSP_polar(adjustment, 2, adjustment, 2, count);
-  
-  // Scale distance
-  vDSP_svdiv(&scale, adjustment, 2, adjustment, 2, count);
-  
-  // Clip distances to range
-  vDSP_vclip(adjustment, 2, &lowClip, &highClip, adjustment, 2, count);
-  
-  // Convert back to rectangular cordinates (x,y)
-  vDSP_rect(adjustment, 2, adjustment, 2, count);
-  
-  // Apply adjustment
-  vDSP_vsub(adjustment, 1, (float*)positions, 1, (float*)positions, 1, count * 2);
-}
-
-- (void)adjustTextPositions:(CGPoint *)positions
-                      count:(NSUInteger)count
-                     origin:(CGPoint)textOrigin
-                touchPoints:(NSSet *)touchPoints {
-  // Text space -> View Space
-  [self addPoint:textOrigin toPositions:positions count:count];
-  
-  // Apply all the touches
-  for (NSValue *touchPointValue in touchPoints) {
-    [self adjustViewPositions:positions
-                        count:count
-                forTouchPoint:[touchPointValue CGPointValue]];
-  }
-  
-  // View Space -> Text Space
-  [self subtractPoint:textOrigin fromPositions:positions count:count];
-}
-
-- (void)applyStylesFromRun:(CTRunRef)run
-               toContext:(CGContextRef)context {
-
-  // Set the font
-  CTFontRef runFont = CFDictionaryGetValue(CTRunGetAttributes(run),
-                                           kCTFontAttributeName);
-  CGFontRef cgFont = CTFontCopyGraphicsFont(runFont, NULL); // FIXME: We could optimize this by caching fonts we know we use.
-  CGContextSetFont(context, cgFont);
-  CGContextSetFontSize(context, CTFontGetSize(runFont));
-  CFRelease(cgFont);
-  
-  // Any other style setting would go here
+  ResizeBufferToAtLeast((void **)&_adjustmentBuffer, sizeof(CGPoint) * count);
+  return _adjustmentBuffer;
 }
 
 - (CGPoint *)positionsForRun:(CTRunRef)run {
@@ -169,93 +269,6 @@ static const CFRange kRangeZero = {0,0};
     glyphs = glyphsBuffer;
   }
   return glyphs;
-}
-
-- (CTLineRef)copyLineAtIndex:(CFIndex)startIndex
-                    forWidth:(CGFloat)boundsWidth
-                      ascent:(CGFloat *)ascent
-                     descent:(CGFloat *)descent
-                     leading:(CGFloat *)leading {
-  // Calculate the line
-  CFIndex lineCharacterCount = CTTypesetterSuggestLineBreak(self.typesetter, startIndex, boundsWidth);
-  CTLineRef line = CTTypesetterCreateLine(self.typesetter, CFRangeMake(startIndex, lineCharacterCount));
-  
-  // Fetch the typographic bounds
-  double lineWidth = CTLineGetTypographicBounds(line, &(*ascent), &(*descent), &(*leading));
-  
-  // Full-justify if the text isn't too short.
-  if ((lineWidth / boundsWidth) > 0.85) {
-    CTLineRef justifiedLine = CTLineCreateJustifiedLine(line, 1.0, boundsWidth);
-    CFRelease(line);
-    line = justifiedLine;
-  }
-  return line;
-}
-
-- (void)drawRect:(CGRect)rect {
-  
-  if (self.attributedString == nil) {
-    return;
-  }
-  
-  // Initialize the context (always initialize your text matrix)
-  CGContextRef context = UIGraphicsGetCurrentContext();
-  CGContextSetTextMatrix(context, CGAffineTransformIdentity);
-  
-  // Cache any calls we can avoid in the loop
-  NSSet *touchPoints = self.touchPoints;
-  BOOL touchIsActive = (touchPoints != nil);
-  
-  // Work out the geometry
-  CGRect insetBounds = CGRectInset([self bounds], 40.0, 40.0);
-  CGFloat boundsWidth = CGRectGetWidth(insetBounds);
-  
-  // Start in the upper-left corner
-  CGPoint textOrigin = CGPointMake(CGRectGetMinX(insetBounds),
-                                   CGRectGetMaxY(insetBounds));
-  
-  CFIndex startIndex = 0;
-  NSUInteger stringLength = self.attributedString.length;
-  while (startIndex < stringLength && textOrigin.y > insetBounds.origin.y) {
-    CGFloat ascent;
-    CGFloat descent;
-    CGFloat leading;
-    CTLineRef line = [self copyLineAtIndex:startIndex
-                                  forWidth:boundsWidth
-                                    ascent:&ascent
-                                   descent:&descent
-                                   leading:&leading];
-    
-    // Move forward to the baseline
-    textOrigin.y -= ascent;
-    CGContextSetTextPosition(context, textOrigin.x, textOrigin.y);
-    
-    // Handle each glyph run
-    for (id runID in (__bridge id)CTLineGetGlyphRuns(line)) {
-      CTRunRef run = (__bridge CTRunRef)runID;
-      
-      [self applyStylesFromRun:run toContext:context];
-      
-      size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
-
-      CGPoint *positions = [self positionsForRun:run];
-      
-      if (touchIsActive) {
-        [self adjustTextPositions:positions
-                            count:glyphCount
-                           origin:textOrigin
-                      touchPoints:touchPoints];
-      }
-      
-      const CGGlyph *glyphs = [self glyphsForRun:run];
-      CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
-    }
-    
-    // Move the index beyond the line break.
-    startIndex += CTLineGetStringRange(line).length;
-    textOrigin.y -= descent + leading + 1; // +1 matches best to CTFramesetter's behavior
-    CFRelease(line);
-  }
 }
 
 - (void)updateTouchPointWithTouches:(NSSet *)touches {
