@@ -7,22 +7,26 @@
 #import <malloc/malloc.h>
 #import <Accelerate/Accelerate.h>
 
-static const CFRange kRangeZero = {0,0};
+static const CFRange kRangeZero = {0, 0};
 
 @interface PinchTextView ()
 
 @property (nonatomic, readonly) CTTypesetterRef typesetter;
 @property (nonatomic, readwrite, strong) NSSet *touchPoints;
-@property (nonatomic, readwrite, assign) CGFloat *adjustmentBuffer;
 @end
 
 @implementation PinchTextView
+{
+  CGFloat *_adjustmentBuffer;
+  CGPoint *_positionsBuffer;
+  CGGlyph *_glyphsBuffer;
+}
 
 #pragma mark -
 #pragma mark Drawing
 
-- (void)drawRect:(CGRect)rect {
-
+- (void)drawRect:(CGRect)rect
+{
   if (self.attributedString == nil) {
     return;
   }
@@ -94,7 +98,8 @@ static const CFRange kRangeZero = {0,0};
                     forWidth:(CGFloat)boundsWidth
                       ascent:(CGFloat *)ascent
                      descent:(CGFloat *)descent
-                     leading:(CGFloat *)leading {
+                     leading:(CGFloat *)leading
+{
   // Calculate the line
   CFIndex lineCharacterCount = CTTypesetterSuggestLineBreak(self.typesetter, startIndex, boundsWidth);
   CTLineRef line = CTTypesetterCreateLine(self.typesetter, CFRangeMake(startIndex, lineCharacterCount));
@@ -115,7 +120,8 @@ static const CFRange kRangeZero = {0,0};
 #pragma mark Styles
 
 - (void)applyStylesFromRun:(CTRunRef)run
-               toContext:(CGContextRef)context {
+                 toContext:(CGContextRef)context
+{
 
   // Set the font
   CTFontRef runFont = CFDictionaryGetValue(CTRunGetAttributes(run),
@@ -131,10 +137,26 @@ static const CFRange kRangeZero = {0,0};
 #pragma mark -
 #pragma mark Positioning
 
+- (CGPoint *)positionsForRun:(CTRunRef)run
+{
+  // This is slightly dangerous. We're getting a pointer to the internal
+  // data, and yes, we're modifying it. But it avoids copying the memory
+  // in most cases, which can get expensive.
+  // Setup our buffers
+  CGPoint *positions = (CGPoint *)CTRunGetPositionsPtr(run);
+  if (positions == NULL) {
+    ResizeBufferToAtLeast((void **)&_positionsBuffer, sizeof(CGPoint) * CTRunGetGlyphCount(run));
+    CTRunGetPositions(run, kRangeZero, _positionsBuffer);
+    positions = _positionsBuffer;
+  }
+  return positions;
+}
+
 - (void)adjustTextPositions:(CGPoint *)positions
                       count:(NSUInteger)count
                      origin:(CGPoint)textOrigin
-                touchPoints:(NSSet *)touchPoints {
+                touchPoints:(NSSet *)touchPoints
+{
   // Text space -> View Space
   [self addPoint:textOrigin toPositions:positions count:count];
 
@@ -151,7 +173,8 @@ static const CFRange kRangeZero = {0,0};
 
 - (void)addPoint:(CGPoint)point
      toPositions:(CGPoint *)positions
-           count:(NSUInteger)count {
+           count:(NSUInteger)count
+{
   float *xStart = (float *)positions;
   float *yStart = xStart + 1;
   vDSP_vsadd(xStart, 2, &(point.x), xStart, 2, count);
@@ -160,7 +183,8 @@ static const CFRange kRangeZero = {0,0};
 
 - (void)subtractPoint:(CGPoint)point
         fromPositions:(CGPoint *)positions
-                count:(NSUInteger)count {
+                count:(NSUInteger)count
+{
   point.x = -point.x;
   point.y = -point.y;
   [self addPoint:point toPositions:positions count:count];
@@ -168,7 +192,8 @@ static const CFRange kRangeZero = {0,0};
 
 - (void)adjustViewPositions:(CGPoint *)positions
                       count:(NSUInteger)count
-              forTouchPoint:(CGPoint)touchPoint {
+              forTouchPoint:(CGPoint)touchPoint
+{
   CGFloat *adjustment = [self adjustmentBufferForCount:count];
 
   // Tuning variables
@@ -193,11 +218,44 @@ static const CFRange kRangeZero = {0,0};
   vDSP_rect(adjustment, 2, adjustment, 2, count);
 
   // Apply adjustment
-  vDSP_vsub(adjustment, 1, (float*)positions, 1, (float*)positions, 1, count * 2);
+  vDSP_vsub(adjustment, 1, (float *)positions, 1, (float *)positions, 1, count * 2);
 }
 
+#pragma mark -
+#pragma mark Glyphs
 
-- (id)initWithFrame:(CGRect)frame {
+- (const CGGlyph *)glyphsForRun:(CTRunRef)run
+{
+  // This one is less dangerous since we don't modify it, and we keep the const
+  // to remind ourselves that it's not to be modified lightly.
+  const CGGlyph *glyphs = CTRunGetGlyphsPtr(run);
+  if (glyphs == NULL) {
+    ResizeBufferToAtLeast((void **)&_glyphsBuffer, sizeof(CGGlyph) * CTRunGetGlyphCount(run));
+    CTRunGetGlyphs(run, kRangeZero, _glyphsBuffer);
+    glyphs = _glyphsBuffer;
+  }
+  return glyphs;
+}
+
+#pragma mark -
+#pragma mark Buffers
+void ResizeBufferToAtLeast(void **buffer, size_t size) {
+  if (!*buffer || malloc_size(*buffer) < size) {
+    *buffer = realloc(*buffer, size);
+  }
+}
+
+- (CGFloat *)adjustmentBufferForCount:(NSUInteger)count
+{
+  ResizeBufferToAtLeast((void **)&_adjustmentBuffer, sizeof(CGPoint) * count);
+  return _adjustmentBuffer;
+}
+
+#pragma mark -
+#pragma mark Init
+
+- (id)initWithFrame:(CGRect)frame
+{
   self = [super initWithFrame:frame];
   if (self != nil) {
     [self finishInit];
@@ -205,11 +263,13 @@ static const CFRange kRangeZero = {0,0};
   return self;
 }
 
-- (void)awakeFromNib {
+- (void)awakeFromNib
+{
   [self finishInit];
 }
 
-- (void)finishInit {
+- (void)finishInit
+{
 #if TARGET_OS_IPHONE
   // Flip the view's context. Core Text runs bottom to top, even on iPad, and
   // the view is much simpler if we do everything in Mac coordinates.
@@ -220,67 +280,13 @@ static const CFRange kRangeZero = {0,0};
   //  self.contentScaleFactor = 1.0;  // If you want it to be near-realtime. :D
 }
 
-- (void)dealloc {
+- (void)dealloc
+{
   CFRelease(_typesetter), _typesetter = nil;
 }
 
-void ResizeBufferToAtLeast(void **buffer, size_t size) {
-  if (! *buffer || malloc_size(*buffer) < size) {
-    *buffer = realloc(*buffer, size);
-  }
-}
-
-- (CGFloat *)adjustmentBufferForCount:(NSUInteger)count {
-  ResizeBufferToAtLeast((void **)&_adjustmentBuffer, sizeof(CGPoint) * count);
-  return _adjustmentBuffer;
-}
-
-- (CGPoint *)positionsForRun:(CTRunRef)run {
-  static CGPoint *positionsBuffer = NULL;
-  
-  // This is slightly dangerous. We're getting a pointer to the internal
-  // data, and yes, we're modifying it. But it avoids copying the memory
-  // in most cases, which can get expensive.
-  // Setup our buffers
-  CGPoint *positions = (CGPoint*)CTRunGetPositionsPtr(run);
-  if (positions == NULL) {
-    size_t positionsBufferSize = sizeof(CGPoint) * CTRunGetGlyphCount(run);
-    if (!positionsBuffer || malloc_size(positionsBuffer) < positionsBufferSize) {
-      positionsBuffer = realloc(positionsBuffer, positionsBufferSize);
-    }
-    CTRunGetPositions(run, kRangeZero, positionsBuffer);
-    positions = positionsBuffer;
-  }
-  return positions;
-}
-
-- (const CGGlyph *)glyphsForRun:(CTRunRef) run {
-  static CGGlyph *glyphsBuffer = NULL;
-  
-  // This one is less dangerous since we don't modify it, and we keep the const
-  // to remind ourselves that it's not to be modified lightly.
-  const CGGlyph *glyphs = CTRunGetGlyphsPtr(run);
-  if (glyphs == NULL) {
-    size_t glyphsBufferSize = sizeof(CGGlyph) * CTRunGetGlyphCount(run);
-    if (malloc_size(glyphsBuffer) < glyphsBufferSize) {
-      glyphsBuffer = realloc(glyphsBuffer, glyphsBufferSize);
-    }
-    CTRunGetGlyphs(run, kRangeZero, (CGGlyph*)glyphs);
-    glyphs = glyphsBuffer;
-  }
-  return glyphs;
-}
-
-- (void)updateTouchPointWithTouches:(NSSet *)touches {
-  NSMutableSet *points = [NSMutableSet new];
-  for (UITouch *touch in touches) {
-    CGPoint location = [touch locationInView:self];
-    [points addObject:[NSValue valueWithCGPoint:location]];
-  }
-  
-  self.touchPoints = points;
-  [self setNeedsDisplay];
-}
+#pragma mark -
+#pragma mark UIResponder
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
@@ -298,10 +304,26 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   [self setNeedsDisplay];
 }
 
-- (void)setAttributedString:(NSAttributedString *)attributedString {
+- (void)updateTouchPointWithTouches:(NSSet *)touches
+{
+  NSMutableSet *points = [NSMutableSet new];
+  for (UITouch *touch in touches) {
+    CGPoint location = [touch locationInView:self];
+    [points addObject:[NSValue valueWithCGPoint:location]];
+  }
+  
+  self.touchPoints = points;
+  [self setNeedsDisplay];
+}
+
+#pragma mark -
+#pragma mark Accessors
+
+- (void)setAttributedString:(NSAttributedString *)attributedString
+{
   if (attributedString != _attributedString) {
     _attributedString = attributedString;
-    
+
     if (_typesetter != NULL) {
       CFRelease(_typesetter);
     }
