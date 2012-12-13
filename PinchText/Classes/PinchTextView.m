@@ -124,8 +124,9 @@ static const CFRange kRangeZero = {0,0};
   [self subtractPoint:textOrigin fromPositions:positions count:count];
 }
 
-- (void)applyFontFromRun:(CTRunRef)run
+- (void)applyStylesFromRun:(CTRunRef)run
                toContext:(CGContextRef)context {
+
   // Set the font
   CTFontRef runFont = CFDictionaryGetValue(CTRunGetAttributes(run),
                                            kCTFontAttributeName);
@@ -133,6 +134,8 @@ static const CFRange kRangeZero = {0,0};
   CGContextSetFont(context, cgFont);
   CGContextSetFontSize(context, CTFontGetSize(runFont));
   CFRelease(cgFont);
+  
+  // Any other style setting would go here
 }
 
 - (CGPoint *)positionsForRun:(CTRunRef)run {
@@ -234,13 +237,11 @@ static const CFRange kRangeZero = {0,0};
     for (id runID in (__bridge id)CTLineGetGlyphRuns(line)) {
       CTRunRef run = (__bridge CTRunRef)runID;
       
-      [self applyFontFromRun:run toContext:context];
-      
-      CGPoint *positions = [self positionsForRun:run];
-      
-      const CGGlyph *glyphs = [self glyphsForRun:run];
+      [self applyStylesFromRun:run toContext:context];
       
       CFIndex glyphCount = CTRunGetGlyphCount(run);
+
+      CGPoint *positions = [self positionsForRun:run];
       
       if (touchIsActive) {
         [self adjustTextPositions:positions
@@ -249,6 +250,7 @@ static const CFRange kRangeZero = {0,0};
                       touchPoints:touchPoints];
       }
       
+      const CGGlyph *glyphs = [self glyphsForRun:run];
       CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
     }
     
