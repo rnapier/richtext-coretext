@@ -48,20 +48,24 @@ static const CFRange kRangeZero = {0,0};
   CFRelease(_typesetter), _typesetter = nil;
 }
 
-void AddPointToPositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin) {
+- (void)addPoint:(CGPoint)point
+     toPositions:(CGPoint *)positions
+           count:(NSUInteger)count {
   float *xStart = (float *)positions;
   float *yStart = xStart + 1;
-  vDSP_vsadd(xStart, 2, &(textOrigin.x), xStart, 2, count);
-  vDSP_vsadd(yStart, 2, &(textOrigin.y), yStart, 2, count);
+  vDSP_vsadd(xStart, 2, &(point.x), xStart, 2, count);
+  vDSP_vsadd(yStart, 2, &(point.y), yStart, 2, count);
 }
 
-void SubtractPointFromPositions(CGPoint *positions, NSUInteger count, CGPoint textOrigin) {
-  textOrigin.x = -textOrigin.x;
-  textOrigin.y = -textOrigin.y;
-  AddPointToPositions(positions, count, textOrigin);
+- (void)subtractPoint:(CGPoint)point
+        fromPositions:(CGPoint *)positions
+                count:(NSUInteger)count {
+  point.x = -point.x;
+  point.y = -point.y;
+  [self addPoint:point toPositions:positions count:count];
 }
 
-CGFloat *GetAdjustmentBuffer(NSUInteger count) {
+- (CGFloat *)adjustmentBufferForCount:(NSUInteger)count {
   // Static memory so we don't malloc/free constantly. Grow it to the largest size we ever need
   static CGFloat *adjust = NULL;
   
@@ -72,8 +76,10 @@ CGFloat *GetAdjustmentBuffer(NSUInteger count) {
   return adjust;
 }
 
-void AdjustViewPositionsForPoint(CGPoint *positions, NSUInteger count, CGPoint touchPoint) {
-  CGFloat *adjustment = GetAdjustmentBuffer(count);
+- (void)adjustViewPositions:(CGPoint *)positions
+                      count:(NSUInteger)count
+              forTouchPoint:(CGPoint)touchPoint {
+  CGFloat *adjustment = [self adjustmentBufferForCount:count];
   
   // Tuning variables
   CGFloat scale = 1000;
@@ -82,7 +88,7 @@ void AdjustViewPositionsForPoint(CGPoint *positions, NSUInteger count, CGPoint t
   
   // adjust = position - touchPoint
   memcpy(adjustment, positions, sizeof(CGPoint) * count);
-  SubtractPointFromPositions((CGPoint *)adjustment, count, touchPoint);
+  [self subtractPoint:touchPoint fromPositions:(CGPoint *)adjustment count:count];
   
   // Convert to polar coordinates (distance/angle)
   vDSP_polar(adjustment, 2, adjustment, 2, count);
@@ -100,21 +106,26 @@ void AdjustViewPositionsForPoint(CGPoint *positions, NSUInteger count, CGPoint t
   vDSP_vsub(adjustment, 1, (float*)positions, 1, (float*)positions, 1, count * 2);
 }
 
-void AdjustTextPositionsForPoints(CGPoint *positions, NSUInteger count,
-                                  CGPoint textOrigin, NSSet *touchPoints) {
+- (void)adjustTextPositions:(CGPoint *)positions
+                      count:(NSUInteger)count
+                     origin:(CGPoint)textOrigin
+                touchPoints:(NSSet *)touchPoints {
   // Text space -> View Space
-  AddPointToPositions(positions, count, textOrigin);
+  [self addPoint:textOrigin toPositions:positions count:count];
   
   // Apply all the touches
   for (NSValue *touchPointValue in touchPoints) {
-    AdjustViewPositionsForPoint(positions, count, [touchPointValue CGPointValue]);
+    [self adjustViewPositions:positions
+                        count:count
+                forTouchPoint:[touchPointValue CGPointValue]];
   }
   
   // View Space -> Text Space
-  SubtractPointFromPositions(positions, count, textOrigin);
+  [self subtractPoint:textOrigin fromPositions:positions count:count];
 }
 
-void SetContextFontFromRun(CGContextRef context, CTRunRef run) {
+- (void)applyFontFromRun:(CTRunRef)run
+               toContext:(CGContextRef)context {
   // Set the font
   CTFontRef runFont = CFDictionaryGetValue(CTRunGetAttributes(run),
                                            kCTFontAttributeName);
@@ -124,7 +135,7 @@ void SetContextFontFromRun(CGContextRef context, CTRunRef run) {
   CFRelease(cgFont);
 }
 
-CGPoint *GetPositionsForRun(CTRunRef run) {
+- (CGPoint *)positionsForRun:(CTRunRef)run {
   static CGPoint *positionsBuffer = NULL;
   
   // This is slightly dangerous. We're getting a pointer to the internal
@@ -143,7 +154,7 @@ CGPoint *GetPositionsForRun(CTRunRef run) {
   return positions;
 }
 
-const CGGlyph *GetGlyphsForRun(CTRunRef run) {
+- (const CGGlyph *)glyphsForRun:(CTRunRef) run {
   static CGGlyph *glyphsBuffer = NULL;
   
   // This one is less dangerous since we don't modify it, and we keep the const
@@ -160,13 +171,14 @@ const CGGlyph *GetGlyphsForRun(CTRunRef run) {
   return glyphs;
 }
 
-CTLineRef CreateLineWithTypesetterAtIndex(CTTypesetterRef typesetter, CFIndex startIndex,
-                                          CGFloat boundsWidth, CGFloat *ascent,
-                                          CGFloat *descent, CGFloat *leading) {
-  
+- (CTLineRef)copyLineAtIndex:(CFIndex)startIndex
+                    forWidth:(CGFloat)boundsWidth
+                      ascent:(CGFloat *)ascent
+                     descent:(CGFloat *)descent
+                     leading:(CGFloat *)leading {
   // Calculate the line
-  CFIndex lineCharacterCount = CTTypesetterSuggestLineBreak(typesetter, startIndex, boundsWidth);
-  CTLineRef line = CTTypesetterCreateLine(typesetter, CFRangeMake(startIndex, lineCharacterCount));
+  CFIndex lineCharacterCount = CTTypesetterSuggestLineBreak(self.typesetter, startIndex, boundsWidth);
+  CTLineRef line = CTTypesetterCreateLine(self.typesetter, CFRangeMake(startIndex, lineCharacterCount));
   
   // Fetch the typographic bounds
   double lineWidth = CTLineGetTypographicBounds(line, &(*ascent), &(*descent), &(*leading));
@@ -193,7 +205,6 @@ CTLineRef CreateLineWithTypesetterAtIndex(CTTypesetterRef typesetter, CFIndex st
   // Cache any calls we can avoid in the loop
   NSSet *touchPoints = self.touchPoints;
   BOOL touchIsActive = (touchPoints != nil);
-  CTTypesetterRef typesetter = self.typesetter;
   
   // Work out the geometry
   CGRect insetBounds = CGRectInset([self bounds], 40.0, 40.0);
@@ -209,8 +220,11 @@ CTLineRef CreateLineWithTypesetterAtIndex(CTTypesetterRef typesetter, CFIndex st
     CGFloat ascent;
     CGFloat descent;
     CGFloat leading;
-    CTLineRef line = CreateLineWithTypesetterAtIndex(typesetter, startIndex, boundsWidth,
-                                                     &ascent, &descent, &leading);
+    CTLineRef line = [self copyLineAtIndex:startIndex
+                                  forWidth:boundsWidth
+                                    ascent:&ascent
+                                   descent:&descent
+                                   leading:&leading];
     
     // Move forward to the baseline
     textOrigin.y -= ascent;
@@ -220,16 +234,19 @@ CTLineRef CreateLineWithTypesetterAtIndex(CTTypesetterRef typesetter, CFIndex st
     for (id runID in (__bridge id)CTLineGetGlyphRuns(line)) {
       CTRunRef run = (__bridge CTRunRef)runID;
       
-      SetContextFontFromRun(context, run);
+      [self applyFontFromRun:run toContext:context];
       
-      CGPoint *positions = GetPositionsForRun(run);
+      CGPoint *positions = [self positionsForRun:run];
       
-      const CGGlyph *glyphs = GetGlyphsForRun(run);
+      const CGGlyph *glyphs = [self glyphsForRun:run];
       
       CFIndex glyphCount = CTRunGetGlyphCount(run);
       
       if (touchIsActive) {
-        AdjustTextPositionsForPoints(positions, glyphCount, textOrigin, touchPoints);
+        [self adjustTextPositions:positions
+                            count:glyphCount
+                           origin:textOrigin
+                      touchPoints:touchPoints];
       }
       
       CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
