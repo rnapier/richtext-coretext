@@ -25,6 +25,10 @@ static NSString *kLipsum;
 	}
 }
 
+- (id)randomValueFromArray:(NSArray *)array {
+  return array[arc4random_uniform(array.count)];
+}
+
 - (UIColor *)randomColor {
   NSArray *colors = @[
   [UIColor blackColor],
@@ -40,7 +44,17 @@ static NSString *kLipsum;
   [UIColor purpleColor],
   [UIColor brownColor]];
   
-  return colors[arc4random_uniform(colors.count)];
+  return [self randomValueFromArray:colors];
+}
+
+- (CGFloat)randomSize {
+  return arc4random_uniform(18) + 18;
+}
+
+- (UIFont *)randomFontWithSize:(CGFloat)size {
+  NSString *family = [self randomValueFromArray:[UIFont familyNames]];
+  NSString *fontName = [self randomValueFromArray:[UIFont fontNamesForFamilyName:family]];
+  return [UIFont fontWithName:fontName size:size];
 }
 
 - (void)adjustText:(NSMutableAttributedString *)astring {
@@ -53,9 +67,12 @@ static NSString *kLipsum;
                                       if (dice < 90) {
                                         attributes[NSForegroundColorAttributeName] = [self randomColor];
                                       }
+                                      else if (dice < 95) {
+                                        attributes[NSFontAttributeName] = [attributes[NSFontAttributeName] fontWithSize:[self randomSize]];
+                                      }
                                       else {
-                                        CGFloat size = arc4random_uniform(18) + 18;
-                                        attributes[NSFontAttributeName] = [attributes[NSFontAttributeName] fontWithSize:size];
+                                        UIFont *currentFont = attributes[NSFontAttributeName];
+                                        attributes[NSFontAttributeName] = [self randomFontWithSize:currentFont.pointSize];
                                       }
                                     }
                                     [astring setAttributes:attributes range:substringRange];
