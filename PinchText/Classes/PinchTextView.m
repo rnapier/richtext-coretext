@@ -25,6 +25,23 @@ static const CFRange kRangeZero = {0, 0};
 #pragma mark -
 #pragma mark Drawing
 
+- (void)drawRun:(CTRunRef)run inContext:(CGContextRef)context textOrigin:(CGPoint)textOrigin
+{
+    [self applyStylesFromRun:run toContext:context];
+    
+    size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
+    
+    CGPoint *positions = [self positionsForRun:run];
+    
+    [self adjustTextPositions:positions
+                        count:glyphCount
+                       origin:textOrigin
+                  touchPoints:self.touchPoints];
+    
+    const CGGlyph *glyphs = [self glyphsForRun:run];
+    CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
+}
+
 - (void)drawRect:(CGRect)rect
 {
   if (self.attributedString == nil) {
@@ -34,10 +51,6 @@ static const CFRange kRangeZero = {0, 0};
   // Initialize the context (always initialize your text matrix)
   CGContextRef context = UIGraphicsGetCurrentContext();
   CGContextSetTextMatrix(context, CGAffineTransformIdentity);
-
-  // Cache any calls we can avoid in the loop
-  NSSet *touchPoints = self.touchPoints;
-  BOOL touchIsActive = (touchPoints != nil);
 
   // Work out the geometry
   CGRect insetBounds = CGRectInset([self bounds], 40.0, 40.0);
@@ -63,25 +76,9 @@ static const CFRange kRangeZero = {0, 0};
     textOrigin.y -= ascent;
     CGContextSetTextPosition(context, textOrigin.x, textOrigin.y);
 
-    // Handle each glyph run
+    // Draw each glyph run
     for (id runID in (__bridge id)CTLineGetGlyphRuns(line)) {
-      CTRunRef run = (__bridge CTRunRef)runID;
-
-      [self applyStylesFromRun:run toContext:context];
-
-      size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
-
-      CGPoint *positions = [self positionsForRun:run];
-
-      if (touchIsActive) {
-        [self adjustTextPositions:positions
-                            count:glyphCount
-                           origin:textOrigin
-                      touchPoints:touchPoints];
-      }
-
-      const CGGlyph *glyphs = [self glyphsForRun:run];
-      CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
+      [self drawRun:(__bridge CTRunRef)runID inContext:context textOrigin:textOrigin];
     }
 
     // Move the index beyond the line break.
@@ -122,14 +119,18 @@ static const CFRange kRangeZero = {0, 0};
 - (void)applyStylesFromRun:(CTRunRef)run
                  toContext:(CGContextRef)context
 {
-
+  NSDictionary *attributes = (__bridge id)CTRunGetAttributes(run);
+  
   // Set the font
-  CTFontRef runFont = CFDictionaryGetValue(CTRunGetAttributes(run),
-                                           kCTFontAttributeName);
+  CTFontRef runFont = (__bridge CTFontRef)attributes[NSFontAttributeName];
   CGFontRef cgFont = CTFontCopyGraphicsFont(runFont, NULL); // FIXME: We could optimize this by caching fonts we know we use.
   CGContextSetFont(context, cgFont);
   CGContextSetFontSize(context, CTFontGetSize(runFont));
   CFRelease(cgFont);
+  
+  // Set the color
+  UIColor *color = attributes[NSForegroundColorAttributeName];
+  CGContextSetFillColorWithColor(context, color.CGColor);
 
   // Any other style setting would go here
 }

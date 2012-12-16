@@ -25,18 +25,57 @@ static NSString *kLipsum;
 	}
 }
 
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {    
+- (UIColor *)randomColor {
+  NSArray *colors = @[
+  [UIColor blackColor],
+  [UIColor darkGrayColor],
+  [UIColor lightGrayColor],
+  [UIColor grayColor],
+  [UIColor redColor],
+  [UIColor greenColor],
+  [UIColor blueColor],
+  [UIColor cyanColor],
+  [UIColor magentaColor],
+  [UIColor orangeColor],
+  [UIColor purpleColor],
+  [UIColor brownColor]];
+  
+  return colors[arc4random_uniform(colors.count)];
+}
+
+- (void)adjustText:(NSMutableAttributedString *)astring {
+  NSMutableDictionary *attributes = [[astring attributesAtIndex:0 effectiveRange:NULL] mutableCopy];
+  [astring.string enumerateSubstringsInRange:NSMakeRange(0, astring.length)
+                                     options:NSStringEnumerationByWords
+                                  usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
+                                    u_int32_t dice = arc4random_uniform(100);
+                                    if (dice > 75) {
+                                      if (dice < 90) {
+                                        attributes[NSForegroundColorAttributeName] = [self randomColor];
+                                      }
+                                      else {
+                                        CGFloat size = arc4random_uniform(18) + 18;
+                                        attributes[NSFontAttributeName] = [attributes[NSFontAttributeName] fontWithSize:size];
+                                      }
+                                    }
+                                    [astring setAttributes:attributes range:substringRange];
+                                  }];
+}
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 	
 	// Override point for customization after application launch
-
+  
 	[self.window makeKeyAndVisible];
-		
-	[self.view setAttributedString:[[NSAttributedString alloc] initWithString:kLipsum
-                                                                 attributes:
-                                  @{NSFontAttributeName:
-                                  [UIFont systemFontOfSize:[UIFont systemFontSize]]}]];
-    
-    return YES;
+  
+  NSMutableAttributedString *astring = [[NSMutableAttributedString alloc] initWithString:kLipsum
+                                                                              attributes:@{
+                                                                     NSFontAttributeName:[UIFont systemFontOfSize:[UIFont systemFontSize]]}];
+
+  [self adjustText:astring];
+	[self.view setAttributedString:astring];
+  
+  return YES;
 }
 
 - (void)dealloc {

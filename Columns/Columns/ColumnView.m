@@ -166,7 +166,7 @@ static const CFIndex kColumnCount = 3;
   for (CFIndex pathIndex = 0; pathIndex < pathCount; ++pathIndex) {
     CGPathRef path = CFArrayGetValueAtIndex(paths, pathIndex);
 
-//    CGContextAddPath(context, path); // Show paths for testing
+    CGContextAddPath(context, path); // Show paths for testing
     
     CTFrameRef
     frame = CTFramesetterCreateFrame(framesetter, 
@@ -179,7 +179,7 @@ static const CFIndex kColumnCount = 3;
     CFRelease(frame);
   }
   
-//  CGContextStrokePath(context); // Show paths for testing
+  CGContextStrokePath(context); // Show paths for testing
   
   CFRelease(paths);
   CFRelease(framesetter);
