@@ -18,6 +18,7 @@
 		FB3C96301236AFA200297B53 /* Lipsum.txt in Resources */ = {isa = PBXBuildFile; fileRef = FB3C962F1236AFA200297B53 /* Lipsum.txt */; };
 		FB423472167E942000B4CE7F /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB423471167E942000B4CE7F /* QuartzCore.framework */; };
 		FB423478167E952100B4CE7F /* PinchTextLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = FB423477167E952100B4CE7F /* PinchTextLayer.m */; };
+		FB423481167F6AB500B4CE7F /* TouchPoint.m in Sources */ = {isa = PBXBuildFile; fileRef = FB423480167F6AB500B4CE7F /* TouchPoint.m */; };
 		FBEA70D7167906F4000CEB83 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FBEA70D6167906F4000CEB83 /* Accelerate.framework */; };
 /* End PBXBuildFile section */
 
@@ -39,6 +40,8 @@
 		FB423471167E942000B4CE7F /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		FB423476167E952100B4CE7F /* PinchTextLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PinchTextLayer.h; sourceTree = "<group>"; };
 		FB423477167E952100B4CE7F /* PinchTextLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PinchTextLayer.m; sourceTree = "<group>"; };
+		FB42347F167F6AB500B4CE7F /* TouchPoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TouchPoint.h; sourceTree = "<group>"; };
+		FB423480167F6AB500B4CE7F /* TouchPoint.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TouchPoint.m; sourceTree = "<group>"; };
 		FBEA70D6167906F4000CEB83 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -68,6 +71,8 @@
 				FB3C95C71236A6EB00297B53 /* PinchTextView.m */,
 				FB423476167E952100B4CE7F /* PinchTextLayer.h */,
 				FB423477167E952100B4CE7F /* PinchTextLayer.m */,
+				FB42347F167F6AB500B4CE7F /* TouchPoint.h */,
+				FB423480167F6AB500B4CE7F /* TouchPoint.m */,
 			);
 			path = Classes;
 			sourceTree = "<group>";
@@ -189,6 +194,7 @@
 				1D3623260D0F684500981E51 /* AppDelegate.m in Sources */,
 				FB3C95C81236A6EB00297B53 /* PinchTextView.m in Sources */,
 				FB423478167E952100B4CE7F /* PinchTextLayer.m in Sources */,
+				FB423481167F6AB500B4CE7F /* TouchPoint.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

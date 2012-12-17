@@ -7,6 +7,7 @@
 #import <malloc/malloc.h>
 #import <Accelerate/Accelerate.h>
 #import <QuartzCore/QuartzCore.h>
+#import "TouchPoint.h"
 
 static const CFRange kRangeZero = {0, 0};
 
@@ -21,7 +22,6 @@ static const CFRange kRangeZero = {0, 0};
   CGGlyph *_glyphsBuffer;
 }
 
-@dynamic pinchScale;
 @dynamic touchPoints;
 
 #pragma mark -
@@ -164,11 +164,9 @@ static const CFRange kRangeZero = {0, 0};
   // Text space -> View Space
   [self addPoint:textOrigin toPositions:positions count:count];
 
-  float pinchScale = self.pinchScale;
   // Apply all the touches
-  for (NSValue *touchPointValue in touchPoints) {
-    CGPoint touchPoint = [touchPointValue CGPointValue];
-    [self adjustViewPositions:positions count:count forTouchPoint:touchPoint pinchScale:pinchScale];
+  for (TouchPoint *touchPoint in touchPoints) {
+    [self adjustViewPositions:positions count:count forTouchPoint:touchPoint];
   }
   
   // View Space -> Text Space
@@ -194,9 +192,11 @@ static const CFRange kRangeZero = {0, 0};
   [self addPoint:point toPositions:positions count:count];
 }
 
-- (void)adjustViewPositions:(CGPoint *)positions count:(NSUInteger)count forTouchPoint:(CGPoint)touchPoint pinchScale:(float)scale
+- (void)adjustViewPositions:(CGPoint *)positions count:(NSUInteger)count forTouchPoint:(TouchPoint *)touchPoint
 {
   CGFloat *adjustment = [self adjustmentBufferForCount:count];
+  CGPoint point = touchPoint.point;
+  float scale = touchPoint.scale;
   
   // Tuning variables
   CGFloat highClip = 20;
@@ -204,7 +204,7 @@ static const CFRange kRangeZero = {0, 0};
   
   // adjust = position - touchPoint
   memcpy(adjustment, positions, sizeof(CGPoint) * count);
-  [self subtractPoint:touchPoint fromPositions:(CGPoint *)adjustment count:count];
+  [self subtractPoint:point fromPositions:(CGPoint *)adjustment count:count];
   
   // Convert to polar coordinates (distance/angle)
   vDSP_polar(adjustment, 2, adjustment, 2, count);
@@ -273,7 +273,6 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 - (id)initWithLayer:(id)layer {
   self = [super initWithLayer:layer];
-  [self setPinchScale:[layer pinchScale]];
   [self setTypesetter:[layer typesetter]];
   [self setPrimitiveAttributedString:[[layer attributedString] copy]];
   [self setTouchPoints:[[layer touchPoints] copy]];

@@ -8,5 +8,4 @@
 @interface PinchTextLayer : CALayer
 @property (nonatomic, readwrite, copy) NSAttributedString *attributedString;
 @property (nonatomic, readwrite, copy) NSSet *touchPoints;
-@property (nonatomic, readwrite, assign) CGFloat pinchScale;
 @end
