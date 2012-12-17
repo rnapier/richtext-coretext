@@ -74,6 +74,11 @@
   self.pinchTextLayer.pinchScale = 0;
 }
 
+- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event;
+{
+  self.pinchTextLayer.pinchScale = 0;
+}
+
 - (void)updateTouchPointWithTouches:(NSSet *)touches
 {
   NSMutableSet *points = [NSMutableSet new];
