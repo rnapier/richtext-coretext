@@ -88,7 +88,6 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
-				FB423471167E942000B4CE7F /* QuartzCore.framework */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
@@ -120,6 +119,7 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				FB423471167E942000B4CE7F /* QuartzCore.framework */,
 				FBEA70D6167906F4000CEB83 /* Accelerate.framework */,
 				FB3C95EC1236AC3100297B53 /* CoreText.framework */,
 				1DF5F4DF0D08C38300B7A737 /* UIKit.framework */,

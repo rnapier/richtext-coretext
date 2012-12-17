@@ -1,9 +1,6 @@
 //
-//  TextDemoAppDelegate.h
-//  TextDemo
-//
-//  Created by Rob on 9/7/10.
-//  Copyright My Company 2010. All rights reserved.
+//  AppDelegate.h
+//  Demonstrates PinchTextView
 //
 
 #import <UIKit/UIKit.h>

@@ -1,9 +1,6 @@
 //
 //  PinchTextView.h
-//  TextDemo
-//
-//  Created by Rob on 9/7/10.
-//  Copyright 2010 My Company. All rights reserved.
+//  Displays an attributed string and pinches it towards touches.
 //
 
 #import <UIKit/UIKit.h>
