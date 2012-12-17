@@ -11,10 +11,9 @@
 #import <objc/runtime.h>
 
 static const CFRange kRangeZero = {0, 0};
-//static const NSUInteger kMaxTouches = 10;
 
 @interface PinchTextLayer ()
-@property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointScale;
+@property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointScales; // Dummy property so we can animate it. See setValue:ForKeypath:
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
 @end
 
@@ -26,7 +25,7 @@ static const CFRange kRangeZero = {0, 0};
 }
 
 @dynamic touchPoints;
-@dynamic touchPointScale;
+@dynamic touchPointScales;
 
 #pragma mark -
 #pragma mark Drawing
@@ -279,7 +278,6 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 {
   self = [super init];
   if (self) {
-    self.touchPointScale = [NSMutableDictionary new];
   }
   return self;
 }
@@ -296,7 +294,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma CALayer
 
 + (BOOL)needsDisplayForKey:(NSString *)key {
-  if ([key isEqualToString:@"touchPoints"] || [key hasPrefix:@"touchPointScale"]) { // FIXME: HACK
+  if ([key isEqualToString:@"touchPoints"] || [key hasPrefix:@"touchPointScales"]) {
     return YES;
   }
   return [super needsDisplayForKey:key];
@@ -312,7 +310,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 }
 
 - (void)setValue:(id)value forKeyPath:(NSString *)keyPath {
-  if ([keyPath hasPrefix:@"touchPointScale."]) {
+  if ([keyPath hasPrefix:@"touchPointScales."]) {
     NSString *identifier = [keyPath substringFromIndex:[keyPath rangeOfString:@"."].location + 1];
     TouchPoint *touchPoint = [self touchPointForIdentifier:identifier];
     touchPoint.scale = [value floatValue];
@@ -324,7 +322,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 - (void)addTouchPoints:(NSSet *)touchPoints {
   for (TouchPoint *touchPoint in touchPoints) {
-    NSString *keypath = [NSString stringWithFormat:@"touchPointScale.%@", [touchPoint identifier]];
+    NSString *keypath = [NSString stringWithFormat:@"touchPointScales.%@", [touchPoint identifier]];
     CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keypath];
     anim.duration = 2;
     anim.fromValue = @0;
