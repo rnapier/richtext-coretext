@@ -340,4 +340,21 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   }
 }
 
+- (TouchPoint *)touchPointForTouch:(UITouch *)touch {
+  for (TouchPoint *touchPoint in self.touchPoints) {
+    if (touchPoint.touch == touch) {
+      return touchPoint;
+    }
+  }
+  return nil;
+}
+
+- (void)updateTouches:(NSSet *)touches inView:(UIView *)view {
+  for (UITouch *touch in touches) {
+    TouchPoint *touchPoint = [self touchPointForTouch:touch];
+    touchPoint.point = [touch locationInView:view];
+  }
+  [self setNeedsDisplay];
+}
+
 @end

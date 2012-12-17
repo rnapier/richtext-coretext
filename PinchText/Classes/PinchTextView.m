@@ -48,7 +48,7 @@
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-//  [self.pinchTextLayer updateTouchPointsWithTouches:[event touchesForView:self]];
+  [self.pinchTextLayer updateTouches:touches inView:self];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event

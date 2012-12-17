@@ -9,4 +9,5 @@
 @property (nonatomic, readwrite, copy) NSAttributedString *attributedString;
 
 - (void)addTouches:(NSSet *)touches inView:(UIView *)view scale:(CGFloat)scale;
+- (void)updateTouches:(NSSet *)touches inView:(UIView *)view;
 @end
