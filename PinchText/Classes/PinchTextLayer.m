@@ -260,8 +260,6 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 - (id)init {
   self = [super init];
   if (self) {
-//    self.pinchScale = 1000;
-    [self setNeedsDisplay];
   }
   return self;
 }
@@ -270,7 +268,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   self = [super initWithLayer:layer];
   [self setPinchScale:[layer pinchScale]];
   [self setTypesetter:[layer typesetter]];
-  [self setAttributedString:[layer attributedString]];
+  [self setPrimitiveAttributedString:[layer attributedString]];
   [self setTouchPoints:[layer touchPoints]];
   return self;
 }
@@ -278,13 +276,17 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma mark -
 #pragma mark Accessors
 
+- (void)setPrimitiveAttributedString:(NSAttributedString *)attributedString {
+  _attributedString = attributedString;
+}
+
 - (void)setAttributedString:(NSAttributedString *)attributedString
 {
   if (attributedString != _attributedString) {
-    _attributedString = attributedString;
-    
+    _attributedString = attributedString;    
     self.typesetter = CTTypesetterCreateWithAttributedString((__bridge CFTypeRef)_attributedString);
   }
+  [self setNeedsDisplay];
 }
 
 + (BOOL)needsDisplayForKey:(NSString *)key {
@@ -293,19 +295,6 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     return YES;
   }
   return [super needsDisplayForKey:key];
-}
-
-- (id<CAAction>)actionForKey:(NSString *)key {
-  if ([self presentationLayer] != nil) {
-    if ([key isEqualToString:@"pinchScale"]) {
-      CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"pinchScale"];
-      anim.duration = 0.05;
-      anim.fromValue = [[self presentationLayer] valueForKey:@"pinchScale"];
-      anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-      return anim;
-    }
-  }
-  return [super actionForKey:key];
 }
 
 @end

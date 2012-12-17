@@ -47,6 +47,13 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
+  CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"pinchScale"];
+  anim.duration = 0.1;
+  anim.fromValue = @(self.pinchTextLayer.pinchScale);
+  anim.toValue = @1000;
+  anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+  [self.pinchTextLayer addAnimation:anim forKey:@"touchesBegan"];
+  
   self.pinchTextLayer.pinchScale = 1000;
   [self updateTouchPointWithTouches:[event touchesForView:self]];
 }
@@ -58,8 +65,14 @@
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
+  CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:@"pinchScale"];
+  animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+  animation.duration = .5;
+  animation.values = @[@1000, @-50, @0];
+  animation.calculationMode = kCAAnimationCubic;
+  [self.pinchTextLayer addAnimation:animation forKey:@"touchesEnded"];
+  
   self.pinchTextLayer.pinchScale = 0;
-//  [self.pinchTextLayer setTouchPoints:nil];
 }
 
 - (void)updateTouchPointWithTouches:(NSSet *)touches
