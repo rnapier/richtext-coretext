@@ -16,6 +16,8 @@
 		FB3C95C81236A6EB00297B53 /* PinchTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = FB3C95C71236A6EB00297B53 /* PinchTextView.m */; };
 		FB3C95ED1236AC3100297B53 /* CoreText.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB3C95EC1236AC3100297B53 /* CoreText.framework */; };
 		FB3C96301236AFA200297B53 /* Lipsum.txt in Resources */ = {isa = PBXBuildFile; fileRef = FB3C962F1236AFA200297B53 /* Lipsum.txt */; };
+		FB423472167E942000B4CE7F /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB423471167E942000B4CE7F /* QuartzCore.framework */; };
+		FB423478167E952100B4CE7F /* PinchTextLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = FB423477167E952100B4CE7F /* PinchTextLayer.m */; };
 		FBEA70D7167906F4000CEB83 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FBEA70D6167906F4000CEB83 /* Accelerate.framework */; };
 /* End PBXBuildFile section */
 
@@ -34,6 +36,9 @@
 		FB3C95C71236A6EB00297B53 /* PinchTextView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PinchTextView.m; sourceTree = "<group>"; };
 		FB3C95EC1236AC3100297B53 /* CoreText.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreText.framework; path = System/Library/Frameworks/CoreText.framework; sourceTree = SDKROOT; };
 		FB3C962F1236AFA200297B53 /* Lipsum.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Lipsum.txt; sourceTree = "<group>"; };
+		FB423471167E942000B4CE7F /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		FB423476167E952100B4CE7F /* PinchTextLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PinchTextLayer.h; sourceTree = "<group>"; };
+		FB423477167E952100B4CE7F /* PinchTextLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PinchTextLayer.m; sourceTree = "<group>"; };
 		FBEA70D6167906F4000CEB83 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -42,6 +47,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB423472167E942000B4CE7F /* QuartzCore.framework in Frameworks */,
 				FBEA70D7167906F4000CEB83 /* Accelerate.framework in Frameworks */,
 				1D60589F0D05DD5A006BFB54 /* Foundation.framework in Frameworks */,
 				1DF5F4E00D08C38300B7A737 /* UIKit.framework in Frameworks */,
@@ -60,6 +66,8 @@
 				1D3623250D0F684500981E51 /* AppDelegate.m */,
 				FB3C95C61236A6EB00297B53 /* PinchTextView.h */,
 				FB3C95C71236A6EB00297B53 /* PinchTextView.m */,
+				FB423476167E952100B4CE7F /* PinchTextLayer.h */,
+				FB423477167E952100B4CE7F /* PinchTextLayer.m */,
 			);
 			path = Classes;
 			sourceTree = "<group>";
@@ -75,6 +83,7 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				FB423471167E942000B4CE7F /* QuartzCore.framework */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
@@ -179,6 +188,7 @@
 				1D60589B0D05DD56006BFB54 /* main.m in Sources */,
 				1D3623260D0F684500981E51 /* AppDelegate.m in Sources */,
 				FB3C95C81236A6EB00297B53 /* PinchTextView.m in Sources */,
+				FB423478167E952100B4CE7F /* PinchTextLayer.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
