@@ -10,16 +10,22 @@
 
 #import "TouchPoint.h"
 
+// Tuning variables
+static const CGFloat kStartTouchAnimationDuration = 0.1;
+static const CGFloat kEndTouchAnimationDuration = 0.6;
+static const CGFloat kEndTouchOvershoot = 0.05;
+static const CGFloat kGlyphAdjustmentClip = 20;
+
+// Other constants
 static const CFRange kRangeZero = {0, 0};
-static NSString *const kTouchPointScalesName = @"touchPointScales";
-static NSString *const kTouchPointRemoveKey = @"TouchPointRemove";
+static NSString *const kTouchPointScalesForwarderName = @"touchPointScalesForwarder";
 
 @interface PinchTextLayer ()
 @property (nonatomic, readwrite, strong) NSMutableSet *touchPoints;
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
 
-// Dummy property so we can animate it. See setValue:forKeyPath:
-@property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointScales;
+// Dummy property so we can animate it. See setValue:forKeyPath:.
+@property (nonatomic, readwrite, strong) id touchPointScalesForwarder;
 @end
 
 @implementation PinchTextLayer
@@ -30,8 +36,7 @@ static NSString *const kTouchPointRemoveKey = @"TouchPointRemove";
 }
 
 // Anything you want Core Animation to animate must be @dynamic.
-// We're lying to Core Animation here, but it still needs to be @dynamic.
-@dynamic touchPointScales;
+@dynamic touchPointScalesForwarder;
 
 #pragma mark -
 #pragma mark Main drawing
@@ -137,7 +142,7 @@ static NSString *const kTouchPointRemoveKey = @"TouchPointRemove";
   
   // Set the font
   CTFontRef runFont = (__bridge CTFontRef)attributes[NSFontAttributeName];
-  CGFontRef cgFont = CTFontCopyGraphicsFont(runFont, NULL); // FIXME: We could optimize this by caching fonts we know we use.
+  CGFontRef cgFont = CTFontCopyGraphicsFont(runFont, NULL);
   CGContextSetFont(context, cgFont);
   CGContextSetFontSize(context, CTFontGetSize(runFont));
   CFRelease(cgFont);
@@ -210,8 +215,8 @@ static NSString *const kTouchPointRemoveKey = @"TouchPointRemove";
   float scale = touchPoint.scale;
   
   // Tuning variables
-  CGFloat highClip = 20;
-  CGFloat lowClip = -highClip;
+  CGFloat highClip = kGlyphAdjustmentClip;
+  CGFloat lowClip = -kGlyphAdjustmentClip;
   
   // adjust = position - touchPoint
   memcpy(adjustment, positions, sizeof(CGPoint) * count);
@@ -307,7 +312,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 + (BOOL)needsDisplayForKey:(NSString *)key
 {
-  if ([key isEqualToString:kTouchPointScalesName]) {
+  if ([key isEqualToString:kTouchPointScalesForwarderName]) {
     return YES;
   }
   else {
@@ -320,7 +325,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 - (void)setValue:(id)value forKeyPath:(NSString *)keyPath
 {
-  if ([keyPath hasPrefix:[kTouchPointScalesName stringByAppendingString:@"."]]) {
+  // When setting keypaths of the form touchPointScalesForwarder.<identifier>, forward to the appropriate touchPoint.
+  if ([keyPath hasPrefix:[kTouchPointScalesForwarderName stringByAppendingString:@"."]]) {
     NSString *identifier = [self identifierForKeyPath:keyPath];
     TouchPoint *touchPoint = [self touchPointForIdentifier:identifier];
     touchPoint.scale = [value floatValue];
@@ -349,7 +355,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 - (NSString *)touchPointScalesKeyPathForTouchPoint:(TouchPoint *)touchPoint
 {
-  return [kTouchPointScalesName stringByAppendingFormat:@".%@", [touchPoint identifier]];
+  return [kTouchPointScalesForwarderName stringByAppendingFormat:@".%@", [touchPoint identifier]];
 }
 
 - (TouchPoint *)touchPointForTouch:(UITouch *)touch
@@ -368,14 +374,13 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     TouchPoint *touchPoint = [TouchPoint touchPointForTouch:touch inView:view scale:scale];
     NSString *keyPath = [self touchPointScalesKeyPathForTouchPoint:touchPoint];
     CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keyPath];
-    anim.duration = 0.1;
+    anim.duration = kStartTouchAnimationDuration;
     anim.fromValue = @0;
     anim.toValue = @(touchPoint.scale);
     anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-    anim.delegate = self;
     [self addAnimation:anim forKey:keyPath];
+
     [self setValue:@(touchPoint.scale) forKey:keyPath];
-    
     [self.touchPoints addObject:touchPoint];
   }
 }
@@ -398,9 +403,9 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     [CATransaction begin];
     CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:keyPath];
     animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-    animation.duration = .5;
+    animation.duration = kEndTouchAnimationDuration;
     CGFloat currentScale = touchPoint.scale;
-    animation.values = @[@(currentScale), @(-currentScale / 20), @0];
+    animation.values = @[@(currentScale), @(-currentScale * kEndTouchOvershoot), @0];
     animation.calculationMode = kCAAnimationCubic;
     [CATransaction setCompletionBlock:^{ [self.touchPoints removeObject:touchPoint]; }];
     [self addAnimation:animation forKey:keyPath];
