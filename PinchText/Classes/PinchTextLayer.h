@@ -10,4 +10,5 @@
 
 - (void)addTouches:(NSSet *)touches inView:(UIView *)view scale:(CGFloat)scale;
 - (void)updateTouches:(NSSet *)touches inView:(UIView *)view;
+- (void)removeTouches:(NSSet *)touches;
 @end

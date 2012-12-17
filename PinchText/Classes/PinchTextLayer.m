@@ -328,7 +328,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     TouchPoint *touchPoint = [TouchPoint touchPointForTouch:touch inView:view scale:scale];
     NSString *keypath = [NSString stringWithFormat:@"touchPointScales.%@", [touchPoint identifier]];
     CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keypath];
-    anim.duration = 2;
+    anim.duration = 0.1;
     anim.fromValue = @0;
     anim.toValue = @(touchPoint.scale);
     anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
@@ -355,6 +355,29 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     touchPoint.point = [touch locationInView:view];
   }
   [self setNeedsDisplay];
+}
+
+- (void)removeTouches:(NSSet *)touches {
+  for (UITouch *touch in touches) {
+    TouchPoint *touchPoint = [self touchPointForTouch:touch];
+    NSString *keypath = [NSString stringWithFormat:@"touchPointScales.%@", [touchPoint identifier]];
+    CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:keypath];
+    animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    animation.duration = .5;
+    CGFloat currentScale = touchPoint.scale;
+    animation.values = @[@(currentScale), @(-currentScale/20), @0];
+    animation.calculationMode = kCAAnimationCubic;
+    [animation setValue:touchPoint forKey:@"PinchTextRemove"];
+    animation.delegate = self;
+    [self addAnimation:animation forKey:keypath];
+  }
+}
+
+- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
+  TouchPoint *touchPoint = [anim valueForKey:@"PinchTextRemove"];
+  if (touchPoint) {
+    [self.touchPoints removeObject:touchPoint];
+  }
 }
 
 @end
