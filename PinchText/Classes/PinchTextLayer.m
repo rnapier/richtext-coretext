@@ -8,10 +8,12 @@
 #import <Accelerate/Accelerate.h>
 #import <QuartzCore/QuartzCore.h>
 #import "TouchPoint.h"
+#import <objc/runtime.h>
 
 static const CFRange kRangeZero = {0, 0};
 
 @interface PinchTextLayer ()
+@property (nonatomic, readwrite, assign) CGFloat inScale1;
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
 @end
 
@@ -23,6 +25,7 @@ static const CFRange kRangeZero = {0, 0};
 }
 
 @dynamic touchPoints;
+@dynamic inScale1;
 
 #pragma mark -
 #pragma mark Drawing
@@ -264,8 +267,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   if (attributedString != _attributedString) {
     _attributedString = attributedString;    
     self.typesetter = CTTypesetterCreateWithAttributedString((__bridge CFTypeRef)_attributedString);
+    [self setNeedsDisplay];
   }
-  [self setNeedsDisplay];
 }
 
 #pragma mark -
@@ -283,11 +286,46 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma CALayer
 
 + (BOOL)needsDisplayForKey:(NSString *)key {
-  if ([key isEqualToString:@"pinchScale"] ||
-      [key isEqualToString:@"touchPoints"]) {
+  if ([key isEqualToString:@"touchPoints"] || [key isEqualToString:@"inScale1"]) { // FIXME: HACK
     return YES;
   }
   return [super needsDisplayForKey:key];
 }
+
+- (void)setValue:(id)value forKey:(NSString *)key {
+  if ([key isEqualToString:@"inScale1"]) {
+    [[self.touchPoints anyObject] setScale:[value floatValue]];
+  }
+  else {
+    [super setValue:value forKey:key];
+  }
+}
+
+- (void)addTouchPoints:(NSSet *)touchPoints {
+  CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"inScale1"];  // FIXME: HACK
+  anim.duration = 2;
+  anim.fromValue = @0;
+  anim.toValue = @1000;
+  anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+  anim.delegate = self;
+  [self addAnimation:anim forKey:@"addTouch"];
+  
+  if (! self.touchPoints) {
+    self.touchPoints = [touchPoints copy];
+  }
+  else {
+    self.touchPoints = [self.touchPoints setByAddingObjectsFromSet:touchPoints];
+  }
+}
+
+- (void)animationDidStart:(CAAnimation *)anim {
+  NSLog(@"animationDidStart");
+}
+
+- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
+  NSLog(@"animationDidStop:%d", flag);
+}
+
+
 
 @end

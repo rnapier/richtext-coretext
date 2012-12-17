@@ -8,4 +8,6 @@
 @interface PinchTextLayer : CALayer
 @property (nonatomic, readwrite, copy) NSAttributedString *attributedString;
 @property (nonatomic, readwrite, copy) NSSet *touchPoints;
+
+- (void)addTouchPoints:(NSSet *)touchPoints;
 @end

@@ -42,21 +42,34 @@
 #pragma mark UIResponder
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
-{
+{ 
 //  CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"pinchScale"];
 //  anim.duration = 0.1;
 //  anim.fromValue = @(self.pinchTextLayer.pinchScale);
 //  anim.toValue = @1000;
 //  anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
 //  [self.pinchTextLayer addAnimation:anim forKey:@"touchesBegan"];
-//  
-//  self.pinchTextLayer.pinchScale = 1000;
-  [self updateTouchPointWithTouches:[event touchesForView:self]];
+
+//  CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"touch_first.scale"];  // FIXME: HACK
+//  anim.duration = 2;
+//  anim.fromValue = @0;
+//  anim.toValue = @1000;
+//  anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+//  [self.pinchTextLayer addAnimation:anim forKey:@"touchesBegan"];
+//  [anim runActionForKey:@"touch_first.scale" object:self.pinchTextLayer arguments:nil];
+  
+//  [self updateTouchPointWithTouches:[event touchesForView:self]];
+  NSMutableSet *points = [NSMutableSet new];
+  for (UITouch *touch in touches) {
+    [points addObject:[TouchPoint touchPointForTouch:touch inView:self scale:1000]];
+  }
+
+  [self.pinchTextLayer addTouchPoints:points];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-  [self updateTouchPointWithTouches:[event touchesForView:self]];
+//  [self updateTouchPointWithTouches:[event touchesForView:self]];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
