@@ -43,33 +43,12 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 { 
-//  CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"pinchScale"];
-//  anim.duration = 0.1;
-//  anim.fromValue = @(self.pinchTextLayer.pinchScale);
-//  anim.toValue = @1000;
-//  anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-//  [self.pinchTextLayer addAnimation:anim forKey:@"touchesBegan"];
-
-//  CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"touch_first.scale"];  // FIXME: HACK
-//  anim.duration = 2;
-//  anim.fromValue = @0;
-//  anim.toValue = @1000;
-//  anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-//  [self.pinchTextLayer addAnimation:anim forKey:@"touchesBegan"];
-//  [anim runActionForKey:@"touch_first.scale" object:self.pinchTextLayer arguments:nil];
-  
-//  [self updateTouchPointWithTouches:[event touchesForView:self]];
-  NSMutableSet *points = [NSMutableSet new];
-  for (UITouch *touch in touches) {
-    [points addObject:[TouchPoint touchPointForTouch:touch inView:self scale:1000]];
-  }
-
-  [self.pinchTextLayer addTouchPoints:points];
+  [self.pinchTextLayer addTouches:touches inView:self scale:1000];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-//  [self updateTouchPointWithTouches:[event touchesForView:self]];
+//  [self.pinchTextLayer updateTouchPointsWithTouches:[event touchesForView:self]];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
@@ -82,22 +61,22 @@
 //  [self.pinchTextLayer addAnimation:animation forKey:@"touchesEnded"];
 //  
 //  self.pinchTextLayer.pinchScale = 0;
-  self.pinchTextLayer.touchPoints = nil;
+//  self.pinchTextLayer.touchPoints = nil;
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event;
 {
-  self.pinchTextLayer.touchPoints = nil;
+//  self.pinchTextLayer.touchPoints = nil;
 }
 
 - (void)updateTouchPointWithTouches:(NSSet *)touches
 {
-  NSMutableSet *points = [NSMutableSet new];
-  for (UITouch *touch in touches) {
-    [points addObject:[TouchPoint touchPointForTouch:touch inView:self scale:1000]];
-  }
-  
-  [self.pinchTextLayer setTouchPoints:points];
+//  NSMutableSet *points = [NSMutableSet new];
+//  for (UITouch *touch in touches) {
+//    [points addObject:[TouchPoint touchPointForTouch:touch inView:self scale:1000]];
+//  }
+//  
+//  [self.pinchTextLayer setTouchPoints:points];
 }
 
 + (Class)layerClass

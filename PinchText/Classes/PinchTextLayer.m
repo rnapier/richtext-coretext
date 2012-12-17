@@ -13,6 +13,7 @@
 static const CFRange kRangeZero = {0, 0};
 
 @interface PinchTextLayer ()
+@property (nonatomic, readwrite, strong) NSMutableSet *touchPoints;
 @property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointScales; // Dummy property so we can animate it. See setValue:ForKeypath:
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
 @end
@@ -278,6 +279,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 {
   self = [super init];
   if (self) {
+    self.touchPoints = [NSMutableSet new];
   }
   return self;
 }
@@ -320,8 +322,10 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   }
 }
 
-- (void)addTouchPoints:(NSSet *)touchPoints {
-  for (TouchPoint *touchPoint in touchPoints) {
+- (void)addTouches:(NSSet *)touches inView:(UIView *)view scale:(CGFloat)scale
+{
+  for (UITouch *touch in touches) {
+    TouchPoint *touchPoint = [TouchPoint touchPointForTouch:touch inView:view scale:scale];
     NSString *keypath = [NSString stringWithFormat:@"touchPointScales.%@", [touchPoint identifier]];
     CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keypath];
     anim.duration = 2;
@@ -331,13 +335,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     anim.delegate = self;
     [self addAnimation:anim forKey:keypath];
     [self setValue:@(touchPoint.scale) forKey:keypath];
-  
-    if (! self.touchPoints) {
-      self.touchPoints = [touchPoints copy];
-    }
-    else {
-      self.touchPoints = [self.touchPoints setByAddingObjectsFromSet:touchPoints];
-    }
+
+    [self.touchPoints addObject:touchPoint];
   }
 }
 

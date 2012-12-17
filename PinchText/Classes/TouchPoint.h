@@ -6,6 +6,7 @@
 #import <Foundation/Foundation.h>
 
 @interface TouchPoint : NSObject
+@property (nonatomic, readwrite, strong) UITouch *touch;
 @property (nonatomic, readwrite, assign) CGPoint point;
 @property (nonatomic, readwrite, assign) CGFloat scale;
 @property (nonatomic, readonly) NSString *identifier;

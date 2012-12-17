@@ -10,6 +10,7 @@
 + (TouchPoint *)touchPointForTouch:(UITouch *)aTouch inView:(UIView *)aView scale:(CGFloat)aScale
 {
   TouchPoint *touchPoint = [TouchPoint new];
+  touchPoint.touch = aTouch;
   touchPoint.scale = aScale;
   touchPoint.point = [aTouch locationInView:aView];
   return touchPoint;
