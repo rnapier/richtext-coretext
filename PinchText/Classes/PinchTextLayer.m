@@ -14,16 +14,7 @@ static const CFRange kRangeZero = {0, 0};
 static const NSUInteger kMaxTouches = 10;
 
 @interface PinchTextLayer ()
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale0;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale1;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale2;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale3;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale4;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale5;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale6;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale7;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale8;
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale9;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale; // Prototype property
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
 @end
 
@@ -35,19 +26,22 @@ static const NSUInteger kMaxTouches = 10;
 }
 
 @dynamic touchPoints;
-@dynamic touchPointScale0;
-@dynamic touchPointScale1;
-@dynamic touchPointScale2;
-@dynamic touchPointScale3;
-@dynamic touchPointScale4;
-@dynamic touchPointScale5;
-@dynamic touchPointScale6;
-@dynamic touchPointScale7;
-@dynamic touchPointScale8;
-@dynamic touchPointScale9;
+@dynamic touchPointScale;
 
 #pragma mark -
 #pragma mark Drawing
+
++ (void)initialize {
+  objc_property_t touchPointScaleProperty = class_getProperty(self, "touchPointScale");
+  unsigned int attributesCount;
+  const char *baseName = property_getName(touchPointScaleProperty);
+  objc_property_attribute_t *attributes = property_copyAttributeList(touchPointScaleProperty, &attributesCount);
+  for (NSUInteger i = 0; i < kMaxTouches; ++i) {
+    NSString *propertyName = [NSString stringWithFormat:@"%s%d", baseName, i];
+    class_addProperty(self, [propertyName UTF8String], attributes, attributesCount);
+  }
+  free(attributes);
+}
 
 - (void)drawRun:(CTRunRef)run inContext:(CGContextRef)context textOrigin:(CGPoint)textOrigin
 {
