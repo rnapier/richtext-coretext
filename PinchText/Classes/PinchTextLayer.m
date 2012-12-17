@@ -1,9 +1,5 @@
 //
 //  PinchTextLayer.m
-//  PinchText
-//
-//  Created by Rob Napier on 12/16/12.
-//
 //
 
 #import "PinchTextLayer.h"
@@ -56,6 +52,8 @@ static const CFRange kRangeZero = {0, 0};
   
   // Initialize the context (always initialize your text matrix)
   CGContextSetTextMatrix(context, CGAffineTransformIdentity);
+  //CGContextSetShouldSmoothFonts(context, true);
+  CGContextSetShouldAntialias(context, true);
   
   // Work out the geometry
   CGRect insetBounds = CGRectInset([self bounds], 40.0, 40.0);
@@ -165,12 +163,12 @@ static const CFRange kRangeZero = {0, 0};
 {
   // Text space -> View Space
   [self addPoint:textOrigin toPositions:positions count:count];
-  
+
+  float pinchScale = self.pinchScale;
   // Apply all the touches
   for (NSValue *touchPointValue in touchPoints) {
-    [self adjustViewPositions:positions
-                        count:count
-                forTouchPoint:[touchPointValue CGPointValue]];
+    CGPoint touchPoint = [touchPointValue CGPointValue];
+    [self adjustViewPositions:positions count:count forTouchPoint:touchPoint pinchScale:pinchScale];
   }
   
   // View Space -> Text Space
@@ -196,9 +194,7 @@ static const CFRange kRangeZero = {0, 0};
   [self addPoint:point toPositions:positions count:count];
 }
 
-- (void)adjustViewPositions:(CGPoint *)positions
-                      count:(NSUInteger)count
-              forTouchPoint:(CGPoint)touchPoint
+- (void)adjustViewPositions:(CGPoint *)positions count:(NSUInteger)count forTouchPoint:(CGPoint)touchPoint pinchScale:(float)scale
 {
   CGFloat *adjustment = [self adjustmentBufferForCount:count];
   
@@ -214,7 +210,6 @@ static const CFRange kRangeZero = {0, 0};
   vDSP_polar(adjustment, 2, adjustment, 2, count);
   
   // Scale distance
-  float scale = self.pinchScale;
   vDSP_svdiv(&scale, adjustment, 2, adjustment, 2, count);
   
   // Clip distances to range
@@ -257,22 +252,6 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   return _adjustmentBuffer;
 }
 
-- (id)init {
-  self = [super init];
-  if (self) {
-  }
-  return self;
-}
-
-- (id)initWithLayer:(id)layer {
-  self = [super initWithLayer:layer];
-  [self setPinchScale:[layer pinchScale]];
-  [self setTypesetter:[layer typesetter]];
-  [self setPrimitiveAttributedString:[layer attributedString]];
-  [self setTouchPoints:[layer touchPoints]];
-  return self;
-}
-
 #pragma mark -
 #pragma mark Accessors
 
@@ -288,6 +267,21 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   }
   [self setNeedsDisplay];
 }
+
+#pragma mark -
+#pragma mark Init/Dealloc
+
+- (id)initWithLayer:(id)layer {
+  self = [super initWithLayer:layer];
+  [self setPinchScale:[layer pinchScale]];
+  [self setTypesetter:[layer typesetter]];
+  [self setPrimitiveAttributedString:[[layer attributedString] copy]];
+  [self setTouchPoints:[[layer touchPoints] copy]];
+  return self;
+}
+
+#pragma mark -
+#pragma CALayer
 
 + (BOOL)needsDisplayForKey:(NSString *)key {
   if ([key isEqualToString:@"pinchScale"] ||

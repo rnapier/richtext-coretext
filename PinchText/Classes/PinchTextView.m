@@ -38,8 +38,7 @@
   CGAffineTransformTranslate(transform, 0, -self.bounds.size.height);
   self.transform = transform;
 #endif
-  //  self.contentScaleFactor = 1.0;  // If you want it to be near-realtime. :D
-  [self.layer setNeedsDisplay];
+  self.contentScaleFactor = [[UIScreen mainScreen] scale];
 }
 
 #pragma mark -
