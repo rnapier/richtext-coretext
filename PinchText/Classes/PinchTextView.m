@@ -61,10 +61,16 @@
   [self.pinchTextLayer removeTouches:touches];
 }
 
+#pragma mark -
+#pragma mark UIView
+
 + (Class)layerClass
 {
   return [PinchTextLayer class];
 }
+
+#pragma mark -
+#pragma mark Accessors
 
 - (NSAttributedString *)attributedString {
   return [self.pinchTextLayer attributedString];

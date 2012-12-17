@@ -10,8 +10,8 @@
 #import "TouchPoint.h"
 
 static const CFRange kRangeZero = {0, 0};
-static NSString * const kTouchPointScalesName = @"touchPointScales";
-static NSString * const kTouchPointRemoveKey = @"TouchPointRemove";
+static NSString *const kTouchPointScalesName = @"touchPointScales";
+static NSString *const kTouchPointRemoveKey = @"TouchPointRemove";
 
 @interface PinchTextLayer ()
 @property (nonatomic, readwrite, strong) NSMutableSet *touchPoints;
@@ -28,28 +28,11 @@ static NSString * const kTouchPointRemoveKey = @"TouchPointRemove";
   CGGlyph *_glyphsBuffer;
 }
 
-@dynamic touchPoints;
+// Anything you want Core Animation to animate must be @dynamic.
 @dynamic touchPointScales;
 
 #pragma mark -
-#pragma mark Drawing
-
-- (void)drawRun:(CTRunRef)run inContext:(CGContextRef)context textOrigin:(CGPoint)textOrigin
-{
-  [self applyStylesFromRun:run toContext:context];
-  
-  size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
-  
-  CGPoint *positions = [self positionsForRun:run];
-  
-  [self adjustTextPositions:positions
-                      count:glyphCount
-                     origin:textOrigin
-                touchPoints:self.touchPoints];
-  
-  const CGGlyph *glyphs = [self glyphsForRun:run];
-  CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
-}
+#pragma mark Main drawing
 
 - (void)drawInContext:(CGContextRef)context
 {
@@ -59,8 +42,6 @@ static NSString * const kTouchPointRemoveKey = @"TouchPointRemove";
   
   // Initialize the context (always initialize your text matrix)
   CGContextSetTextMatrix(context, CGAffineTransformIdentity);
-  //CGContextSetShouldSmoothFonts(context, true);
-  CGContextSetShouldAntialias(context, true);
   
   // Work out the geometry
   CGRect insetBounds = CGRectInset([self bounds], 40.0, 40.0);
@@ -73,9 +54,7 @@ static NSString * const kTouchPointRemoveKey = @"TouchPointRemove";
   CFIndex startIndex = 0;
   NSUInteger stringLength = self.attributedString.length;
   while (startIndex < stringLength && textOrigin.y > insetBounds.origin.y) {
-    CGFloat ascent;
-    CGFloat descent;
-    CGFloat leading;
+    CGFloat ascent, descent, leading;
     CTLineRef line = [self copyLineAtIndex:startIndex
                                   forWidth:boundsWidth
                                     ascent:&ascent
@@ -112,16 +91,39 @@ static NSString * const kTouchPointRemoveKey = @"TouchPointRemove";
   CTLineRef line = CTTypesetterCreateLine(self.typesetter, CFRangeMake(startIndex, lineCharacterCount));
   
   // Fetch the typographic bounds
-  double lineWidth = CTLineGetTypographicBounds(line, &(*ascent), &(*descent), &(*leading));
+  CTLineGetTypographicBounds(line, &(*ascent), &(*descent), &(*leading));
   
-  // Full-justify if the text isn't too short.
-  if ((lineWidth / boundsWidth) > 0.85) {
+  // Full-justify all but last line of paragraphs
+  NSString *string = self.attributedString.string;
+  NSUInteger endingLocation = startIndex + lineCharacterCount;
+  if (endingLocation >= string.length || [string characterAtIndex:endingLocation] != '\n') {
     CTLineRef justifiedLine = CTLineCreateJustifiedLine(line, 1.0, boundsWidth);
     CFRelease(line);
     line = justifiedLine;
   }
   return line;
 }
+
+#pragma mark -
+#pragma mark Draw runs
+
+- (void)drawRun:(CTRunRef)run inContext:(CGContextRef)context textOrigin:(CGPoint)textOrigin
+{
+  [self applyStylesFromRun:run toContext:context];
+  
+  size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
+  
+  CGPoint *positions = [self positionsForRun:run];
+  
+  [self adjustTextPositions:positions
+                      count:glyphCount
+                     origin:textOrigin
+                touchPoints:self.touchPoints];
+  
+  const CGGlyph *glyphs = [self glyphsForRun:run];
+  CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
+}
+
 
 #pragma mark -
 #pragma mark Styles
@@ -170,7 +172,7 @@ static NSString * const kTouchPointRemoveKey = @"TouchPointRemove";
 {
   // Text space -> View Space
   [self addPoint:textOrigin toPositions:positions count:count];
-
+  
   // Apply all the touches
   for (TouchPoint *touchPoint in touchPoints) {
     [self adjustViewPositions:positions count:count forTouchPoint:touchPoint];
@@ -247,6 +249,7 @@ static NSString * const kTouchPointRemoveKey = @"TouchPointRemove";
 
 #pragma mark -
 #pragma mark Buffers
+
 void ResizeBufferToAtLeast(void **buffer, size_t size) {
   if (!*buffer || malloc_size(*buffer) < size) {
     *buffer = realloc(*buffer, size);
@@ -262,14 +265,15 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma mark -
 #pragma mark Accessors
 
-- (void)setPrimitiveAttributedString:(NSAttributedString *)attributedString {
+- (void)setPrimitiveAttributedString:(NSAttributedString *)attributedString
+{
   _attributedString = attributedString;
 }
 
 - (void)setAttributedString:(NSAttributedString *)attributedString
 {
   if (attributedString != _attributedString) {
-    _attributedString = attributedString;    
+    _attributedString = attributedString;
     self.typesetter = CTTypesetterCreateWithAttributedString((__bridge CFTypeRef)_attributedString);
     [self setNeedsDisplay];
   }
@@ -287,7 +291,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   return self;
 }
 
-- (id)initWithLayer:(id)layer {
+- (id)initWithLayer:(id)layer
+{
   self = [super initWithLayer:layer];
   [self setTypesetter:[layer typesetter]];
   [self setPrimitiveAttributedString:[[layer attributedString] copy]];
@@ -298,7 +303,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma mark -
 #pragma mark CALayer
 
-+ (BOOL)needsDisplayForKey:(NSString *)key {
++ (BOOL)needsDisplayForKey:(NSString *)key
+{
   if ([key isEqualToString:kTouchPointScalesName]) {
     return YES;
   }
@@ -310,7 +316,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma mark -
 #pragma mark KVC
 
-- (void)setValue:(id)value forKeyPath:(NSString *)keyPath {
+- (void)setValue:(id)value forKeyPath:(NSString *)keyPath
+{
   if ([keyPath hasPrefix:[kTouchPointScalesName stringByAppendingString:@"."]]) {
     NSString *identifier = [keyPath substringFromIndex:[keyPath rangeOfString:@"."].location + 1];
     TouchPoint *touchPoint = [self touchPointForIdentifier:identifier];
@@ -324,7 +331,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma mark -
 #pragma mark Touch handling
 
-- (TouchPoint *)touchPointForIdentifier:(NSString *)identifier {
+- (TouchPoint *)touchPointForIdentifier:(NSString *)identifier
+{
   for (TouchPoint *touchPoint in self.touchPoints) {
     if ([[touchPoint identifier] isEqualToString:identifier]) {
       return touchPoint;
@@ -333,8 +341,19 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   return nil;
 }
 
-- (NSString *)touchPointScalesKeypathForTouchPoint:(TouchPoint *)touchPoint {
+- (NSString *)touchPointScalesKeypathForTouchPoint:(TouchPoint *)touchPoint
+{
   return [kTouchPointScalesName stringByAppendingFormat:@".%@", [touchPoint identifier]];
+}
+
+- (TouchPoint *)touchPointForTouch:(UITouch *)touch
+{
+  for (TouchPoint *touchPoint in self.touchPoints) {
+    if (touchPoint.touch == touch) {
+      return touchPoint;
+    }
+  }
+  return nil;
 }
 
 - (void)addTouches:(NSSet *)touches inView:(UIView *)view scale:(CGFloat)scale
@@ -350,21 +369,13 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     anim.delegate = self;
     [self addAnimation:anim forKey:keypath];
     [self setValue:@(touchPoint.scale) forKey:keypath];
-
+    
     [self.touchPoints addObject:touchPoint];
   }
 }
 
-- (TouchPoint *)touchPointForTouch:(UITouch *)touch {
-  for (TouchPoint *touchPoint in self.touchPoints) {
-    if (touchPoint.touch == touch) {
-      return touchPoint;
-    }
-  }
-  return nil;
-}
-
-- (void)updateTouches:(NSSet *)touches inView:(UIView *)view {
+- (void)updateTouches:(NSSet *)touches inView:(UIView *)view
+{
   for (UITouch *touch in touches) {
     TouchPoint *touchPoint = [self touchPointForTouch:touch];
     touchPoint.point = [touch locationInView:view];
@@ -372,7 +383,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   [self setNeedsDisplay];
 }
 
-- (void)removeTouches:(NSSet *)touches {
+- (void)removeTouches:(NSSet *)touches
+{
   for (UITouch *touch in touches) {
     TouchPoint *touchPoint = [self touchPointForTouch:touch];
     NSString *keypath = [self touchPointScalesKeypathForTouchPoint:touchPoint];
@@ -380,7 +392,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     animation.duration = .5;
     CGFloat currentScale = touchPoint.scale;
-    animation.values = @[@(currentScale), @(-currentScale/20), @0];
+    animation.values = @[@(currentScale), @(-currentScale / 20), @0];
     animation.calculationMode = kCAAnimationCubic;
     [animation setValue:touchPoint forKey:kTouchPointRemoveKey];
     animation.delegate = self;
@@ -391,7 +403,8 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma mark -
 #pragma mark CAAnimationDelegate
 
-- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
+- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag
+{
   TouchPoint *touchPoint = [anim valueForKey:kTouchPointRemoveKey];
   if (touchPoint) {
     [self.touchPoints removeObject:touchPoint];
