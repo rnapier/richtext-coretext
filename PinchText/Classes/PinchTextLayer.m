@@ -8,14 +8,17 @@
 #import <Accelerate/Accelerate.h>
 #import <QuartzCore/QuartzCore.h>
 #import "TouchPoint.h"
-#import <objc/runtime.h>
 
 static const CFRange kRangeZero = {0, 0};
+static NSString * const kTouchPointScalesName = @"touchPointScales";
+static NSString * const kTouchPointRemoveKey = @"TouchPointRemove";
 
 @interface PinchTextLayer ()
 @property (nonatomic, readwrite, strong) NSMutableSet *touchPoints;
-@property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointScales; // Dummy property so we can animate it. See setValue:ForKeypath:
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
+
+// Dummy property so we can animate it. See setValue:forKeypath:
+@property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointScales;
 @end
 
 @implementation PinchTextLayer
@@ -293,14 +296,33 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 }
 
 #pragma mark -
-#pragma CALayer
+#pragma mark CALayer
 
 + (BOOL)needsDisplayForKey:(NSString *)key {
-  if ([key isEqualToString:@"touchPoints"] || [key hasPrefix:@"touchPointScales"]) {
+  if ([key isEqualToString:kTouchPointScalesName]) {
     return YES;
   }
-  return [super needsDisplayForKey:key];
+  else {
+    return [super needsDisplayForKey:key];
+  }
 }
+
+#pragma mark -
+#pragma mark KVC
+
+- (void)setValue:(id)value forKeyPath:(NSString *)keyPath {
+  if ([keyPath hasPrefix:[kTouchPointScalesName stringByAppendingString:@"."]]) {
+    NSString *identifier = [keyPath substringFromIndex:[keyPath rangeOfString:@"."].location + 1];
+    TouchPoint *touchPoint = [self touchPointForIdentifier:identifier];
+    touchPoint.scale = [value floatValue];
+  }
+  else {
+    [super setValue:value forKeyPath:keyPath];
+  }
+}
+
+#pragma mark -
+#pragma mark Touch handling
 
 - (TouchPoint *)touchPointForIdentifier:(NSString *)identifier {
   for (TouchPoint *touchPoint in self.touchPoints) {
@@ -311,22 +333,15 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   return nil;
 }
 
-- (void)setValue:(id)value forKeyPath:(NSString *)keyPath {
-  if ([keyPath hasPrefix:@"touchPointScales."]) {
-    NSString *identifier = [keyPath substringFromIndex:[keyPath rangeOfString:@"."].location + 1];
-    TouchPoint *touchPoint = [self touchPointForIdentifier:identifier];
-    touchPoint.scale = [value floatValue];
-  }
-  else {
-    [super setValue:value forKeyPath:keyPath];
-  }
+- (NSString *)touchPointScalesKeypathForTouchPoint:(TouchPoint *)touchPoint {
+  return [kTouchPointScalesName stringByAppendingFormat:@".%@", [touchPoint identifier]];
 }
 
 - (void)addTouches:(NSSet *)touches inView:(UIView *)view scale:(CGFloat)scale
 {
   for (UITouch *touch in touches) {
     TouchPoint *touchPoint = [TouchPoint touchPointForTouch:touch inView:view scale:scale];
-    NSString *keypath = [NSString stringWithFormat:@"touchPointScales.%@", [touchPoint identifier]];
+    NSString *keypath = [self touchPointScalesKeypathForTouchPoint:touchPoint];
     CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keypath];
     anim.duration = 0.1;
     anim.fromValue = @0;
@@ -360,21 +375,24 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 - (void)removeTouches:(NSSet *)touches {
   for (UITouch *touch in touches) {
     TouchPoint *touchPoint = [self touchPointForTouch:touch];
-    NSString *keypath = [NSString stringWithFormat:@"touchPointScales.%@", [touchPoint identifier]];
+    NSString *keypath = [self touchPointScalesKeypathForTouchPoint:touchPoint];
     CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:keypath];
     animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     animation.duration = .5;
     CGFloat currentScale = touchPoint.scale;
     animation.values = @[@(currentScale), @(-currentScale/20), @0];
     animation.calculationMode = kCAAnimationCubic;
-    [animation setValue:touchPoint forKey:@"PinchTextRemove"];
+    [animation setValue:touchPoint forKey:kTouchPointRemoveKey];
     animation.delegate = self;
     [self addAnimation:animation forKey:keypath];
   }
 }
 
+#pragma mark -
+#pragma mark CAAnimationDelegate
+
 - (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
-  TouchPoint *touchPoint = [anim valueForKey:@"PinchTextRemove"];
+  TouchPoint *touchPoint = [anim valueForKey:kTouchPointRemoveKey];
   if (touchPoint) {
     [self.touchPoints removeObject:touchPoint];
   }
