@@ -14,4 +14,9 @@
   touchPoint.point = [aTouch locationInView:aView];
   return touchPoint;
 }
+
+- (NSString *)identifier {
+  return [NSString stringWithFormat:@"%p", self];
+}
+
 @end

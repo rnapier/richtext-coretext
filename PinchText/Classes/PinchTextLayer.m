@@ -11,10 +11,10 @@
 #import <objc/runtime.h>
 
 static const CFRange kRangeZero = {0, 0};
-static const NSUInteger kMaxTouches = 10;
+//static const NSUInteger kMaxTouches = 10;
 
 @interface PinchTextLayer ()
-@property (nonatomic, readwrite, assign) CGFloat touchPointScale; // Prototype property
+@property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointScale;
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
 @end
 
@@ -30,18 +30,6 @@ static const NSUInteger kMaxTouches = 10;
 
 #pragma mark -
 #pragma mark Drawing
-
-+ (void)initialize {
-  objc_property_t touchPointScaleProperty = class_getProperty(self, "touchPointScale");
-  unsigned int attributesCount;
-  const char *baseName = property_getName(touchPointScaleProperty);
-  objc_property_attribute_t *attributes = property_copyAttributeList(touchPointScaleProperty, &attributesCount);
-  for (NSUInteger i = 0; i < kMaxTouches; ++i) {
-    NSString *propertyName = [NSString stringWithFormat:@"%s%d", baseName, i];
-    class_addProperty(self, [propertyName UTF8String], attributes, attributesCount);
-  }
-  free(attributes);
-}
 
 - (void)drawRun:(CTRunRef)run inContext:(CGContextRef)context textOrigin:(CGPoint)textOrigin
 {
@@ -208,15 +196,11 @@ static const NSUInteger kMaxTouches = 10;
   [self addPoint:point toPositions:positions count:count];
 }
 
-- (float)scaleForTouchPoint:(TouchPoint *)touchPoint {
-  return [[self valueForKey:[NSString stringWithFormat:@"touchPointScale%d", touchPoint.tag]] floatValue];  // FIXME: Handle non-animating
-}
-
 - (void)adjustViewPositions:(CGPoint *)positions count:(NSUInteger)count forTouchPoint:(TouchPoint *)touchPoint
 {
   CGFloat *adjustment = [self adjustmentBufferForCount:count];
   CGPoint point = touchPoint.point;
-  float scale = [self scaleForTouchPoint:touchPoint];
+  float scale = touchPoint.scale;
   
   // Tuning variables
   CGFloat highClip = 20;
@@ -291,6 +275,15 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma mark -
 #pragma mark Init/Dealloc
 
+- (id)init
+{
+  self = [super init];
+  if (self) {
+    self.touchPointScale = [NSMutableDictionary new];
+  }
+  return self;
+}
+
 - (id)initWithLayer:(id)layer {
   self = [super initWithLayer:layer];
   [self setTypesetter:[layer typesetter]];
@@ -309,29 +302,29 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   return [super needsDisplayForKey:key];
 }
 
-- (TouchPoint *)touchPointForTag:(NSUInteger)tag {
+- (TouchPoint *)touchPointForIdentifier:(NSString *)identifier {
   for (TouchPoint *touchPoint in self.touchPoints) {
-    if (touchPoint.tag == tag) {
+    if ([[touchPoint identifier] isEqualToString:identifier]) {
       return touchPoint;
     }
   }
   return nil;
 }
 
-- (NSUInteger)firstAvailableTag {
-  for (NSUInteger tag = 0; tag < kMaxTouches; tag++) {
-    if (! [self touchPointForTag:tag]) {
-      return tag;
-    }
+- (void)setValue:(id)value forKeyPath:(NSString *)keyPath {
+  if ([keyPath hasPrefix:@"touchPointScale."]) {
+    NSString *identifier = [keyPath substringFromIndex:[keyPath rangeOfString:@"."].location + 1];
+    TouchPoint *touchPoint = [self touchPointForIdentifier:identifier];
+    touchPoint.scale = [value floatValue];
   }
-  return NSNotFound;
+  else {
+    [super setValue:value forKeyPath:keyPath];
+  }
 }
 
 - (void)addTouchPoints:(NSSet *)touchPoints {
   for (TouchPoint *touchPoint in touchPoints) {
-    NSUInteger tag = [self firstAvailableTag];  // FIXME: Handle NSNotFound
-    touchPoint.tag = tag;
-    NSString *keypath = [NSString stringWithFormat:@"touchPointScale%d", tag];
+    NSString *keypath = [NSString stringWithFormat:@"touchPointScale.%@", [touchPoint identifier]];
     CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keypath];
     anim.duration = 2;
     anim.fromValue = @0;
