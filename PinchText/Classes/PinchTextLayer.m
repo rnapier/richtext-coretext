@@ -11,9 +11,19 @@
 #import <objc/runtime.h>
 
 static const CFRange kRangeZero = {0, 0};
+static const NSUInteger kMaxTouches = 10;
 
 @interface PinchTextLayer ()
-@property (nonatomic, readwrite, assign) CGFloat inScale1;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale0;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale1;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale2;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale3;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale4;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale5;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale6;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale7;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale8;
+@property (nonatomic, readwrite, assign) CGFloat touchPointScale9;
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
 @end
 
@@ -25,7 +35,16 @@ static const CFRange kRangeZero = {0, 0};
 }
 
 @dynamic touchPoints;
-@dynamic inScale1;
+@dynamic touchPointScale0;
+@dynamic touchPointScale1;
+@dynamic touchPointScale2;
+@dynamic touchPointScale3;
+@dynamic touchPointScale4;
+@dynamic touchPointScale5;
+@dynamic touchPointScale6;
+@dynamic touchPointScale7;
+@dynamic touchPointScale8;
+@dynamic touchPointScale9;
 
 #pragma mark -
 #pragma mark Drawing
@@ -195,11 +214,15 @@ static const CFRange kRangeZero = {0, 0};
   [self addPoint:point toPositions:positions count:count];
 }
 
+- (float)scaleForTouchPoint:(TouchPoint *)touchPoint {
+  return [[self valueForKey:[NSString stringWithFormat:@"touchPointScale%d", touchPoint.tag]] floatValue];  // FIXME: Handle non-animating
+}
+
 - (void)adjustViewPositions:(CGPoint *)positions count:(NSUInteger)count forTouchPoint:(TouchPoint *)touchPoint
 {
   CGFloat *adjustment = [self adjustmentBufferForCount:count];
   CGPoint point = touchPoint.point;
-  float scale = touchPoint.scale;
+  float scale = [self scaleForTouchPoint:touchPoint];
   
   // Tuning variables
   CGFloat highClip = 20;
@@ -286,46 +309,51 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma CALayer
 
 + (BOOL)needsDisplayForKey:(NSString *)key {
-  if ([key isEqualToString:@"touchPoints"] || [key isEqualToString:@"inScale1"]) { // FIXME: HACK
+  if ([key isEqualToString:@"touchPoints"] || [key hasPrefix:@"touchPointScale"]) { // FIXME: HACK
     return YES;
   }
   return [super needsDisplayForKey:key];
 }
 
-- (void)setValue:(id)value forKey:(NSString *)key {
-  if ([key isEqualToString:@"inScale1"]) {
-    [[self.touchPoints anyObject] setScale:[value floatValue]];
+- (TouchPoint *)touchPointForTag:(NSUInteger)tag {
+  for (TouchPoint *touchPoint in self.touchPoints) {
+    if (touchPoint.tag == tag) {
+      return touchPoint;
+    }
   }
-  else {
-    [super setValue:value forKey:key];
+  return nil;
+}
+
+- (NSUInteger)firstAvailableTag {
+  for (NSUInteger tag = 0; tag < kMaxTouches; tag++) {
+    if (! [self touchPointForTag:tag]) {
+      return tag;
+    }
   }
+  return NSNotFound;
 }
 
 - (void)addTouchPoints:(NSSet *)touchPoints {
-  CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"inScale1"];  // FIXME: HACK
-  anim.duration = 2;
-  anim.fromValue = @0;
-  anim.toValue = @1000;
-  anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-  anim.delegate = self;
-  [self addAnimation:anim forKey:@"addTouch"];
+  for (TouchPoint *touchPoint in touchPoints) {
+    NSUInteger tag = [self firstAvailableTag];  // FIXME: Handle NSNotFound
+    touchPoint.tag = tag;
+    NSString *keypath = [NSString stringWithFormat:@"touchPointScale%d", tag];
+    CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keypath];
+    anim.duration = 2;
+    anim.fromValue = @0;
+    anim.toValue = @(touchPoint.scale);
+    anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    anim.delegate = self;
+    [self addAnimation:anim forKey:keypath];
+    [self setValue:@(touchPoint.scale) forKey:keypath];
   
-  if (! self.touchPoints) {
-    self.touchPoints = [touchPoints copy];
+    if (! self.touchPoints) {
+      self.touchPoints = [touchPoints copy];
+    }
+    else {
+      self.touchPoints = [self.touchPoints setByAddingObjectsFromSet:touchPoints];
+    }
   }
-  else {
-    self.touchPoints = [self.touchPoints setByAddingObjectsFromSet:touchPoints];
-  }
 }
-
-- (void)animationDidStart:(CAAnimation *)anim {
-  NSLog(@"animationDidStart");
-}
-
-- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
-  NSLog(@"animationDidStop:%d", flag);
-}
-
-
 
 @end

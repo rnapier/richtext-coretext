@@ -8,6 +8,7 @@
 @interface TouchPoint : NSObject
 @property (nonatomic, readwrite, assign) CGPoint point;
 @property (nonatomic, readwrite, assign) CGFloat scale;
+@property (nonatomic, readwrite, assign) NSUInteger tag;
 
 + (TouchPoint *)touchPointForTouch:(UITouch *)touch inView:(UIView *)view scale:(CGFloat)scale;
 @end
