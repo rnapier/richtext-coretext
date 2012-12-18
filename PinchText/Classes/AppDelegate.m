@@ -77,13 +77,27 @@
   return richText;
 }
 
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+- (void)loadText
 {
   NSString *path = [[NSBundle mainBundle] pathForResource:@"Lipsum" ofType:@"txt"];
   NSString *text = [[NSString alloc] initWithContentsOfFile:path encoding:NSUTF8StringEncoding error:NULL];
   [self.view setAttributedString:[self richTextForString:text]];
+}
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+{
+  [self loadText];
   [self.window makeKeyAndVisible];
   return YES;
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+  [self loadText];
+}
+
+- (void)applicationWillResignActive:(UIApplication *)application {
+  [self.view setAttributedString:nil];
 }
 
 @end

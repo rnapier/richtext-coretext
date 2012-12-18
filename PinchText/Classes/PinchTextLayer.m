@@ -19,6 +19,7 @@ static const CGFloat kGlyphAdjustmentClip = 20;
 // Other constants
 static const CFRange kRangeZero = {0, 0};
 static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier";
+
 @interface PinchTextLayer ()
 @property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointForIdentifier;
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
@@ -128,8 +129,7 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
 #pragma mark -
 #pragma mark Styles
 
-- (void)applyStylesFromRun:(CTRunRef)run
-                 toContext:(CGContextRef)context
+- (void)applyStylesFromRun:(CTRunRef)run toContext:(CGContextRef)context
 {
   NSDictionary *attributes = (__bridge id)CTRunGetAttributes(run);
   
@@ -344,7 +344,6 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     [self addAnimation:anim forKey:keyPath];
 
-    [self setValue:@(touchPoint.scale) forKey:keyPath];
     [self.touchPointForIdentifier setObject:touchPoint forKey:touchPoint.identifier];
   }
 }
