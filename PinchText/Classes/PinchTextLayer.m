@@ -18,14 +18,10 @@ static const CGFloat kGlyphAdjustmentClip = 20;
 
 // Other constants
 static const CFRange kRangeZero = {0, 0};
-static NSString *const kTouchPointForwarderName = @"touchPointForwarder";
 
 @interface PinchTextLayer ()
-@property (nonatomic, readwrite, strong) NSMutableSet *touchPoints;
+@property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointForIdentifier;
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
-
-// Dummy property so we can animate it. See setValue:forKeyPath:.
-@property (nonatomic, readwrite, strong) id touchPointForwarder;
 @end
 
 @implementation PinchTextLayer
@@ -34,9 +30,6 @@ static NSString *const kTouchPointForwarderName = @"touchPointForwarder";
   CGPoint *_positionsBuffer;
   CGGlyph *_glyphsBuffer;
 }
-
-// Anything you want Core Animation to animate must be @dynamic.
-@dynamic touchPointForwarder;
 
 #pragma mark -
 #pragma mark Main drawing
@@ -125,7 +118,7 @@ static NSString *const kTouchPointForwarderName = @"touchPointForwarder";
   [self adjustTextPositions:positions
                       count:glyphCount
                      origin:textOrigin
-                touchPoints:self.touchPoints];
+                touchPoints:[self.touchPointForIdentifier allValues]];
   
   const CGGlyph *glyphs = [self glyphsForRun:run];
   CGContextShowGlyphsAtPositions(context, glyphs, positions, glyphCount);
@@ -175,7 +168,7 @@ static NSString *const kTouchPointForwarderName = @"touchPointForwarder";
 - (void)adjustTextPositions:(CGPoint *)positions
                       count:(NSUInteger)count
                      origin:(CGPoint)textOrigin
-                touchPoints:(NSSet *)touchPoints
+                touchPoints:(NSArray *)touchPoints
 {
   // Text space -> View Space
   [self addPoint:textOrigin toPositions:positions count:count];
@@ -293,7 +286,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 {
   self = [super init];
   if (self) {
-    self.touchPoints = [NSMutableSet new];
+    self.touchPointForIdentifier = [NSMutableDictionary new];
   }
   return self;
 }
@@ -303,7 +296,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   self = [super initWithLayer:layer];
   [self setTypesetter:[layer typesetter]];
   [self setPrimitiveAttributedString:[[layer attributedString] copy]];
-  [self setTouchPoints:[[layer touchPoints] copy]];
+  [self setTouchPointForIdentifier:[[layer touchPointForIdentifier] copy]];
   return self;
 }
 
@@ -312,7 +305,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 + (BOOL)needsDisplayForKey:(NSString *)key
 {
-  if ([key isEqualToString:kTouchPointForwarderName]) {
+  if ([key isEqualToString:@"touchPoints"]) {
     return YES;
   }
   else {
@@ -321,45 +314,16 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 }
 
 #pragma mark -
-#pragma mark KVC
-
-- (void)setValue:(id)value forKeyPath:(NSString *)keyPath
-{
-  // When setting keypaths of the form touchPointForwarder.<identifier>.<property>, forward to the appropriate touchPoint.
-  if ([keyPath hasPrefix:[kTouchPointForwarderName stringByAppendingString:@"."]]) {
-    NSArray *keyPathComponents = [keyPath componentsSeparatedByString:@"."];
-    NSString *identifier = keyPathComponents[1];
-    NSArray *touchPointKeyPathComponents = [keyPathComponents subarrayWithRange:NSMakeRange(2, keyPathComponents.count - 2)];
-    NSString *touchPointKeyPath = [touchPointKeyPathComponents componentsJoinedByString:@"."];
-    TouchPoint *touchPoint = [self touchPointForIdentifier:identifier];
-    [touchPoint setValue:value forKeyPath:touchPointKeyPath];
-  }
-  else {
-    [super setValue:value forKeyPath:keyPath];
-  }
-}
-
-#pragma mark -
 #pragma mark Touch handling
-
-- (TouchPoint *)touchPointForIdentifier:(NSString *)identifier
-{
-  for (TouchPoint *touchPoint in self.touchPoints) {
-    if ([[touchPoint identifier] isEqualToString:identifier]) {
-      return touchPoint;
-    }
-  }
-  return nil;
-}
 
 - (NSString *)touchPointScaleKeyPathForTouchPoint:(TouchPoint *)touchPoint
 {
-  return [kTouchPointForwarderName stringByAppendingFormat:@".%@.scale", [touchPoint identifier]];
+  return [NSString stringWithFormat:@"touchPoints.%@.scale", touchPoint.identifier];
 }
 
 - (TouchPoint *)touchPointForTouch:(UITouch *)touch
 {
-  for (TouchPoint *touchPoint in self.touchPoints) {
+  for (TouchPoint *touchPoint in self.touchPointForIdentifier.allValues) {
     if (touchPoint.touch == touch) {
       return touchPoint;
     }
@@ -380,7 +344,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     [self addAnimation:anim forKey:keyPath];
 
     [self setValue:@(touchPoint.scale) forKey:keyPath];
-    [self.touchPoints addObject:touchPoint];
+    [self.touchPointForIdentifier setObject:touchPoint forKey:touchPoint.identifier];
   }
 }
 
@@ -406,7 +370,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     CGFloat currentScale = touchPoint.scale;
     animation.values = @[@(currentScale), @(-currentScale * kEndTouchOvershoot), @0];
     animation.calculationMode = kCAAnimationCubic;
-    [CATransaction setCompletionBlock:^{ [self.touchPoints removeObject:touchPoint]; }];
+    [CATransaction setCompletionBlock:^{ [self.touchPointForIdentifier removeObjectForKey:touchPoint.identifier]; }];
     [self addAnimation:animation forKey:keyPath];
     [CATransaction commit];
   }
