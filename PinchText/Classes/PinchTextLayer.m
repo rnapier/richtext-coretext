@@ -18,7 +18,7 @@ static const CGFloat kGlyphAdjustmentClip = 20;
 
 // Other constants
 static const CFRange kRangeZero = {0, 0};
-
+static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier";
 @interface PinchTextLayer ()
 @property (nonatomic, readwrite, strong) NSMutableDictionary *touchPointForIdentifier;
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
@@ -305,7 +305,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 + (BOOL)needsDisplayForKey:(NSString *)key
 {
-  if ([key isEqualToString:@"touchPoints"]) {
+  if ([key isEqualToString:kTouchPointForIdentifierName]) {
     return YES;
   }
   else {
@@ -318,7 +318,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 - (NSString *)touchPointScaleKeyPathForTouchPoint:(TouchPoint *)touchPoint
 {
-  return [NSString stringWithFormat:@"touchPoints.%@.scale", touchPoint.identifier];
+  return [NSString stringWithFormat:@"%@.%@.scale", kTouchPointForIdentifierName, touchPoint.identifier];
 }
 
 - (TouchPoint *)touchPointForTouch:(UITouch *)touch
@@ -336,6 +336,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   for (UITouch *touch in touches) {
     TouchPoint *touchPoint = [TouchPoint touchPointForTouch:touch inView:view scale:scale];
     NSString *keyPath = [self touchPointScaleKeyPathForTouchPoint:touchPoint];
+    
     CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keyPath];
     anim.duration = kStartTouchAnimationDuration;
     anim.fromValue = @0;
