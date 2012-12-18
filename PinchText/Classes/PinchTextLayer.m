@@ -18,14 +18,14 @@ static const CGFloat kGlyphAdjustmentClip = 20;
 
 // Other constants
 static const CFRange kRangeZero = {0, 0};
-static NSString *const kTouchPointScalesForwarderName = @"touchPointScalesForwarder";
+static NSString *const kTouchPointForwarderName = @"touchPointForwarder";
 
 @interface PinchTextLayer ()
 @property (nonatomic, readwrite, strong) NSMutableSet *touchPoints;
 @property (nonatomic, readwrite, strong) __attribute__((NSObject)) CTTypesetterRef typesetter;
 
 // Dummy property so we can animate it. See setValue:forKeyPath:.
-@property (nonatomic, readwrite, strong) id touchPointScalesForwarder;
+@property (nonatomic, readwrite, strong) id touchPointForwarder;
 @end
 
 @implementation PinchTextLayer
@@ -36,7 +36,7 @@ static NSString *const kTouchPointScalesForwarderName = @"touchPointScalesForwar
 }
 
 // Anything you want Core Animation to animate must be @dynamic.
-@dynamic touchPointScalesForwarder;
+@dynamic touchPointForwarder;
 
 #pragma mark -
 #pragma mark Main drawing
@@ -312,7 +312,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 + (BOOL)needsDisplayForKey:(NSString *)key
 {
-  if ([key isEqualToString:kTouchPointScalesForwarderName]) {
+  if ([key isEqualToString:kTouchPointForwarderName]) {
     return YES;
   }
   else {
@@ -325,19 +325,18 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 
 - (void)setValue:(id)value forKeyPath:(NSString *)keyPath
 {
-  // When setting keypaths of the form touchPointScalesForwarder.<identifier>, forward to the appropriate touchPoint.
-  if ([keyPath hasPrefix:[kTouchPointScalesForwarderName stringByAppendingString:@"."]]) {
-    NSString *identifier = [self identifierForKeyPath:keyPath];
+  // When setting keypaths of the form touchPointForwarder.<identifier>.<property>, forward to the appropriate touchPoint.
+  if ([keyPath hasPrefix:[kTouchPointForwarderName stringByAppendingString:@"."]]) {
+    NSArray *keyPathComponents = [keyPath componentsSeparatedByString:@"."];
+    NSString *identifier = keyPathComponents[1];
+    NSArray *touchPointKeyPathComponents = [keyPathComponents subarrayWithRange:NSMakeRange(2, keyPathComponents.count - 2)];
+    NSString *touchPointKeyPath = [touchPointKeyPathComponents componentsJoinedByString:@"."];
     TouchPoint *touchPoint = [self touchPointForIdentifier:identifier];
-    touchPoint.scale = [value floatValue];
+    [touchPoint setValue:value forKeyPath:touchPointKeyPath];
   }
   else {
     [super setValue:value forKeyPath:keyPath];
   }
-}
-
-- (NSString *)identifierForKeyPath:(NSString *)keyPath {
-  return [keyPath substringFromIndex:[keyPath rangeOfString:@"."].location + 1];
 }
 
 #pragma mark -
@@ -353,9 +352,9 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
   return nil;
 }
 
-- (NSString *)touchPointScalesKeyPathForTouchPoint:(TouchPoint *)touchPoint
+- (NSString *)touchPointScaleKeyPathForTouchPoint:(TouchPoint *)touchPoint
 {
-  return [kTouchPointScalesForwarderName stringByAppendingFormat:@".%@", [touchPoint identifier]];
+  return [kTouchPointForwarderName stringByAppendingFormat:@".%@.scale", [touchPoint identifier]];
 }
 
 - (TouchPoint *)touchPointForTouch:(UITouch *)touch
@@ -372,7 +371,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 {
   for (UITouch *touch in touches) {
     TouchPoint *touchPoint = [TouchPoint touchPointForTouch:touch inView:view scale:scale];
-    NSString *keyPath = [self touchPointScalesKeyPathForTouchPoint:touchPoint];
+    NSString *keyPath = [self touchPointScaleKeyPathForTouchPoint:touchPoint];
     CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:keyPath];
     anim.duration = kStartTouchAnimationDuration;
     anim.fromValue = @0;
@@ -398,7 +397,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 {
   for (UITouch *touch in touches) {
     TouchPoint *touchPoint = [self touchPointForTouch:touch];
-    NSString *keyPath = [self touchPointScalesKeyPathForTouchPoint:touchPoint];
+    NSString *keyPath = [self touchPointScaleKeyPathForTouchPoint:touchPoint];
 
     [CATransaction begin];
     CAKeyframeAnimation *animation = [CAKeyframeAnimation animationWithKeyPath:keyPath];
