@@ -11,10 +11,10 @@
 #import "TouchPoint.h"
 
 // Tuning variables
-static const CGFloat kStartTouchAnimationDuration = 0.1;
-static const CGFloat kEndTouchAnimationDuration = 0.6;
+static const CFTimeInterval kStartTouchAnimationDuration = 0.1;
+static const CFTimeInterval kEndTouchAnimationDuration = 0.6;
 static const CGFloat kEndTouchOvershoot = 0.05;
-static const CGFloat kGlyphAdjustmentClip = 20;
+static const float kGlyphAdjustmentClip = 20;
 
 // Other constants
 static const CFRange kRangeZero = {0, 0};
@@ -31,6 +31,7 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
   CGPoint *_positionsBuffer;
   CGGlyph *_glyphsBuffer;
 }
+
 
 #pragma mark -
 #pragma mark Main drawing
@@ -51,7 +52,8 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
   // Start in the upper-left corner
   CGPoint textOrigin = CGPointMake(CGRectGetMinX(insetBounds),
                                    CGRectGetMaxY(insetBounds));
-  
+
+  // For each line, until we run out of text or vertical space
   CFIndex startIndex = 0;
   NSUInteger stringLength = self.attributedString.length;
   while (startIndex < stringLength && textOrigin.y > insetBounds.origin.y) {
@@ -77,6 +79,7 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
     CFRelease(line);
   }
 }
+
 
 #pragma mark -
 #pragma mark Typesetting
@@ -105,8 +108,9 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
   return line;
 }
 
+
 #pragma mark -
-#pragma mark Draw runs
+#pragma mark Draw glyph runs
 
 - (void)drawRun:(CTRunRef)run inContext:(CGContextRef)context textOrigin:(CGPoint)textOrigin
 {
@@ -115,7 +119,8 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
   size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
   
   CGPoint *positions = [self positionsForRun:run];
-  
+
+  // Fancy Accelerate math. Modifies positions based on touch points.
   [self adjustTextPositions:positions
                       count:glyphCount
                      origin:textOrigin
@@ -146,6 +151,7 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
   
   // Any other style setting would go here
 }
+
 
 #pragma mark -
 #pragma mark Positioning
@@ -207,9 +213,9 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
   CGPoint point = touchPoint.point;
   float scale = touchPoint.scale;
   
-  // Tuning variables
-  CGFloat highClip = kGlyphAdjustmentClip;
-  CGFloat lowClip = -kGlyphAdjustmentClip;
+  // Tuning variables. How far away can a glyph move?
+  float highClip = kGlyphAdjustmentClip;
+  float lowClip = -kGlyphAdjustmentClip;
   
   // adjust = position - touchPoint
   memcpy(adjustment, positions, sizeof(CGPoint) * count);
@@ -231,6 +237,7 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
   vDSP_vsub(adjustment, 1, (float *)positions, 1, (float *)positions, 1, count * 2);
 }
 
+
 #pragma mark -
 #pragma mark Glyphs
 
@@ -246,6 +253,7 @@ static NSString * const kTouchPointForIdentifierName = @"touchPointForIdentifier
   }
   return glyphs;
 }
+
 
 #pragma mark -
 #pragma mark Buffers
@@ -265,11 +273,6 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 #pragma mark -
 #pragma mark Accessors
 
-- (void)setPrimitiveAttributedString:(NSAttributedString *)attributedString
-{
-  _attributedString = attributedString;
-}
-
 - (void)setAttributedString:(NSAttributedString *)attributedString
 {
   if (attributedString != _attributedString) {
@@ -286,7 +289,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 {
   self = [super init];
   if (self) {
-    self.touchPointForIdentifier = [NSMutableDictionary new];
+    _touchPointForIdentifier = [NSMutableDictionary new];
   }
   return self;
 }
@@ -294,11 +297,14 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
 - (id)initWithLayer:(id)layer
 {
   self = [super initWithLayer:layer];
-  [self setTypesetter:[layer typesetter]];
-  [self setPrimitiveAttributedString:[[layer attributedString] copy]];
-  [self setTouchPointForIdentifier:[[layer touchPointForIdentifier] copy]];
+  if (self) {
+    _typesetter = [layer typesetter];
+    _attributedString = [layer attributedString];
+    _touchPointForIdentifier = [layer touchPointForIdentifier];
+  }
   return self;
 }
+
 
 #pragma mark -
 #pragma mark CALayer
@@ -312,6 +318,7 @@ void ResizeBufferToAtLeast(void **buffer, size_t size) {
     return [super needsDisplayForKey:key];
   }
 }
+
 
 #pragma mark -
 #pragma mark Touch handling

@@ -8,7 +8,6 @@
 #import <QuartzCore/QuartzCore.h>
 
 #import "PinchTextLayer.h"
-#import "TouchPoint.h"
 
 @implementation PinchTextView
 
