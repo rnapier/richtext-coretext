@@ -1,0 +1,24 @@
+
+PODS:
+- MTStringAttributes (0.0.2):
+  - Slash (~> 0.1)
+- Slash (0.1):
+  - Slash/arc (= 0.1)
+  - Slash/no-arc (= 0.1)
+- Slash/arc (0.1)
+- Slash/no-arc (0.1)
+
+DEPENDENCIES:
+- MTStringAttributes (from `https://github.com/rnapier/MTStringAttributes.git')
+
+EXTERNAL SOURCES:
+  MTStringAttributes:
+    :git: https://github.com/rnapier/MTStringAttributes.git
+
+SPEC CHECKSUMS:
+  MTStringAttributes: 2772a4243953a1c72f108ecc2dc5e60b0192b9ac
+  Slash: d594faa2126764cad15ceb01b251e2e6577743d9
+  Slash/arc: d594faa2126764cad15ceb01b251e2e6577743d9
+  Slash/no-arc: d594faa2126764cad15ceb01b251e2e6577743d9
+
+COCOAPODS: 0.16.4

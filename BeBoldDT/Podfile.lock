@@ -1,0 +1,18 @@
+
+PODS:
+- DTCoreText (1.3.2):
+  - DTFoundation/Core (~> 1.1)
+  - DTFoundation/DTHMLParser (~> 1.0)
+- DTFoundation/Core (1.1.0)
+- DTFoundation/DTHMLParser (1.1.0):
+  - DTFoundation/Core
+
+DEPENDENCIES:
+- DTCoreText
+
+SPEC CHECKSUMS:
+  DTCoreText: ea0506fd102311311da09a3842170ce07f0a1b29
+  DTFoundation/Core: d84efdb26b073826cc526d3b00fcbb5b47ffe176
+  DTFoundation/DTHMLParser: d84efdb26b073826cc526d3b00fcbb5b47ffe176
+
+COCOAPODS: 0.16.4
