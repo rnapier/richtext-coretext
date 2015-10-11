@@ -10,95 +10,103 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  [self loadText];
-  [self.window makeKeyAndVisible];
-  return YES;
+    [self.window setRootViewController:[UIViewController new]]; // Who needs a root view controller?
+    self.window.rootViewController.view = self.view;
+    [self loadText];
+    [self.window makeKeyAndVisible];
+    return YES;
 }
 
 - (void)loadText
 {
-  NSString *path = [[NSBundle mainBundle] pathForResource:@"Lipsum" ofType:@"txt"];
-  NSString *text = [[NSString alloc] initWithContentsOfFile:path encoding:NSUTF8StringEncoding error:NULL];
-  [self.view setAttributedString:[self richTextForString:text]];
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"Lipsum" ofType:@"txt"];
+    NSString *text = [[NSString alloc] initWithContentsOfFile:path encoding:NSUTF8StringEncoding error:NULL];
+    [self.view setAttributedString:[self richTextForString:text]];
 }
 
 - (NSAttributedString *)richTextForString:(NSString *)text
 {
-  UIFont *defaultFont = [UIFont systemFontOfSize:[UIFont systemFontSize]];
-  NSDictionary *defaultAttributes = @{ NSFontAttributeName : defaultFont };
+    UIFont *defaultFont = [UIFont systemFontOfSize:[UIFont systemFontSize]];
+    NSDictionary *defaultAttributes = @{ NSFontAttributeName : defaultFont };
 
-  NSMutableAttributedString *richText = [[NSMutableAttributedString alloc] initWithString:text
-                                                                               attributes:defaultAttributes];
+    NSMutableAttributedString *richText = [[NSMutableAttributedString alloc] initWithString:text
+                                                                                 attributes:defaultAttributes];
 
-  NSMutableDictionary *attributes = [[richText attributesAtIndex:0 effectiveRange:NULL] mutableCopy];
-  [richText.string enumerateSubstringsInRange:NSMakeRange(0, richText.length)
-                                      options:NSStringEnumerationBySentences
-                                   usingBlock:^(NSString *substring,
-                                                NSRange substringRange,
-                                                NSRange enclosingRange,
-                                                BOOL *stop) {
-                                     u_int32_t dice = arc4random_uniform(100);
-                                     if (dice > 25) {
-                                       if (dice < 50) {
-                                         attributes[NSForegroundColorAttributeName] = [self randomColor];
-                                       }
-                                       else if (dice < 75) {
-                                         UIFont *oldFont = attributes[NSFontAttributeName];
-                                         attributes[NSFontAttributeName] = [oldFont fontWithSize:[self randomSize]];
-                                       }
-                                       else {
-                                         UIFont *currentFont = attributes[NSFontAttributeName];
-                                         attributes[NSFontAttributeName] = [self randomFontWithSize:currentFont.pointSize];
-                                       }
-                                     }
-                                     [richText setAttributes:attributes range:substringRange];
-                                   }];
-  return richText;
+    NSMutableDictionary *attributes = [[richText attributesAtIndex:0 effectiveRange:NULL] mutableCopy];
+    [richText.string enumerateSubstringsInRange:NSMakeRange(0, richText.length)
+                                        options:NSStringEnumerationBySentences
+                                     usingBlock:^(NSString *substring,
+                                                  NSRange substringRange,
+                                                  NSRange enclosingRange,
+                                                  BOOL *stop) {
+                                         u_int32_t dice = arc4random_uniform(100);
+                                         if (dice > 25) {
+                                             if (dice < 50) {
+                                                 attributes[NSForegroundColorAttributeName] = [self randomColor];
+                                             }
+                                             else if (dice < 75) {
+                                                 UIFont *oldFont = attributes[NSFontAttributeName];
+                                                 attributes[NSFontAttributeName] = [oldFont fontWithSize:[self randomSize]];
+                                             }
+                                             else {
+                                                 UIFont *currentFont = attributes[NSFontAttributeName];
+                                                 attributes[NSFontAttributeName] = [self randomFontWithSize:currentFont.pointSize];
+                                             }
+                                         }
+                                         [richText setAttributes:attributes range:substringRange];
+                                     }];
+    return richText;
 }
 
 - (UIFont *)randomFontWithSize:(CGFloat)size
 {
-  NSString *family = [self randomValueFromArray:[UIFont familyNames]];
-  NSString *fontName = [self randomValueFromArray:[UIFont fontNamesForFamilyName:family]];
-  return [UIFont fontWithName:fontName size:size];
+    while (true) {
+        NSString *family = [self randomValueFromArray:[UIFont familyNames]];
+        NSArray *fonts = [UIFont fontNamesForFamilyName:family];
+        if (fonts.count == 0) {
+            continue;
+        }
+        NSString *fontName = [self randomValueFromArray:fonts];
+        return [UIFont fontWithName:fontName size:size];
+    }
 }
 
 - (id)randomValueFromArray:(NSArray *)array
 {
-  return array[arc4random_uniform(array.count)];
+    return array[arc4random_uniform((u_int32_t)array.count)];
 }
 
 - (UIColor *)randomColor
 {
-  NSArray *colors = @[
-  [UIColor blackColor],
-  [UIColor darkGrayColor],
-  [UIColor lightGrayColor],
-  [UIColor grayColor],
-  [UIColor redColor],
-  [UIColor blueColor],
-  [UIColor cyanColor],
-  [UIColor magentaColor],
-  [UIColor orangeColor],
-  [UIColor purpleColor],
-  [UIColor brownColor]];
-  
-  return [self randomValueFromArray:colors];
+    NSArray *colors = @[
+                        [UIColor blackColor],
+                        [UIColor darkGrayColor],
+                        [UIColor lightGrayColor],
+                        [UIColor grayColor],
+                        [UIColor redColor],
+                        [UIColor blueColor],
+                        [UIColor cyanColor],
+                        [UIColor magentaColor],
+                        [UIColor orangeColor],
+                        [UIColor purpleColor],
+                        [UIColor brownColor]];
+    
+    return [self randomValueFromArray:colors];
 }
 
 - (CGFloat)randomSize
 {
-  return arc4random_uniform(18) + 18;
+    return arc4random_uniform(18) + 18;
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
-  [self loadText];
+    [self loadText];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
-  [self.view setAttributedString:nil];
+    [self.view setAttributedString:nil];
 }
 
 @end
