@@ -36,7 +36,6 @@
 		FBCDA5C2164B1635000CF1F2 /* Default@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default@2x.png"; sourceTree = "<group>"; };
 		FBCDA5C4164B1635000CF1F2 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
 		FBCDA5C7164B1635000CF1F2 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = en; path = en.lproj/MainStoryboard.storyboard; sourceTree = "<group>"; };
-		FBCDA5CA164B1635000CF1F2 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
 		FBCDA607164B470B000CF1F2 /* CoreText.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreText.framework; path = System/Library/Frameworks/CoreText.framework; sourceTree = SDKROOT; };
 		FBDC04261ED1D14F0043F791 /* BeBold-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BeBold-Bridging-Header.h"; sourceTree = "<group>"; };
 		FBDC04291ED1D1E30043F791 /* ViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -91,7 +90,6 @@
 				FBCDA5BD164B1635000CF1F2 /* AppDelegate.h */,
 				FBCDA5BE164B1635000CF1F2 /* AppDelegate.m */,
 				FBCDA5C6164B1635000CF1F2 /* MainStoryboard.storyboard */,
-				FBCDA5CA164B1635000CF1F2 /* ViewController.m */,
 				FBDC04291ED1D1E30043F791 /* ViewController.swift */,
 				FBCDA5B5164B1635000CF1F2 /* Supporting Files */,
 				FBDC04261ED1D14F0043F791 /* BeBold-Bridging-Header.h */,
