@@ -16,8 +16,8 @@
 		FB9469FE140834CF00F7A625 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = FB9469FD140834CF00F7A625 /* ViewController.m */; };
 		FB946A051408350C00F7A625 /* Lipsum.txt in Resources */ = {isa = PBXBuildFile; fileRef = FB946A041408350C00F7A625 /* Lipsum.txt */; };
 		FB946A07140835D900F7A625 /* CoreText.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB946A06140835D900F7A625 /* CoreText.framework */; };
-		FB946A0A1408381400F7A625 /* ColumnView.m in Sources */ = {isa = PBXBuildFile; fileRef = FB946A091408381400F7A625 /* ColumnView.m */; };
 		FB946A0C1408394700F7A625 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB946A0B1408394700F7A625 /* CoreGraphics.framework */; };
+		FBAC7F281ED27815003FCE02 /* ColumnView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBAC7F271ED27815003FCE02 /* ColumnView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +38,8 @@
 		FB946A081408381400F7A625 /* ColumnView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColumnView.h; sourceTree = "<group>"; };
 		FB946A091408381400F7A625 /* ColumnView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ColumnView.m; sourceTree = "<group>"; };
 		FB946A0B1408394700F7A625 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		FBAC7F261ED27814003FCE02 /* Columns-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Columns-Bridging-Header.h"; sourceTree = "<group>"; };
+		FBAC7F271ED27815003FCE02 /* ColumnView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ColumnView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,9 +93,11 @@
 				FB9469F9140834CF00F7A625 /* MainStoryboard.storyboard */,
 				FB9469FC140834CF00F7A625 /* ViewController.h */,
 				FB9469FD140834CF00F7A625 /* ViewController.m */,
+				FBAC7F271ED27815003FCE02 /* ColumnView.swift */,
 				FB946A081408381400F7A625 /* ColumnView.h */,
 				FB946A091408381400F7A625 /* ColumnView.m */,
 				FB9469EE140834CF00F7A625 /* Supporting Files */,
+				FBAC7F261ED27814003FCE02 /* Columns-Bridging-Header.h */,
 			);
 			path = Columns;
 			sourceTree = "<group>";
@@ -137,6 +141,11 @@
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 0450;
+				TargetAttributes = {
+					FB9469E4140834CF00F7A625 = {
+						LastSwiftMigration = 0830;
+					};
+				};
 			};
 			buildConfigurationList = FB9469DF140834CF00F7A625 /* Build configuration list for PBXProject "Columns" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -174,9 +183,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				FB9469F4140834CF00F7A625 /* main.m in Sources */,
+				FBAC7F281ED27815003FCE02 /* ColumnView.swift in Sources */,
 				FB9469F8140834CF00F7A625 /* AppDelegate.m in Sources */,
 				FB9469FE140834CF00F7A625 /* ViewController.m in Sources */,
-				FB946A0A1408381400F7A625 /* ColumnView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,7 +231,6 @@
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 2;
 			};
@@ -241,7 +249,6 @@
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 2;
@@ -252,10 +259,15 @@
 		FB946A02140834CF00F7A625 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Columns/Columns-Prefix.pch";
 				INFOPLIST_FILE = "Columns/Columns-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Columns/Columns-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 3.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -263,10 +275,14 @@
 		FB946A03140834CF00F7A625 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Columns/Columns-Prefix.pch";
 				INFOPLIST_FILE = "Columns/Columns-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Columns/Columns-Bridging-Header.h";
+				SWIFT_VERSION = 3.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
